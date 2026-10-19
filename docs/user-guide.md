@@ -1,0 +1,114 @@
+# User's Guide (Graphical Interface)
+
+> Docs: [README](../README.md) · [Installation](installation.md) · [Camera setup](camera-setup.md) · [User guide](user-guide.md) · [Renaming engine](renaming-engine.md) · [Command line](command-line-reference.md) · [FAQ](faq.md)
+
+The best resource for learning how to use Airnef is the Youtube tutorial linked at the top of this page.
+
+## Basic Operation
+
+Airnef provides two basic methods for selecting which images/movies to download - in the camera or on your computer. The benefit of selecting in the camera is that you can visually preview the images(s) first. The downside is that it's more cumbersome to select a large number of images. Also, some models limit the types of files you can select within the camera. For example the D7200 doesn't allow video files to be selected. Consumer-level cameras like the Nikon 1 J4 only let you select JPEGs. Fortunately both raw and video files can be downloaded on all camera models using the computer selection method within Airnef.
+
+Airnef is really two separate applications - a Graphical Interface (airnef) and a Command-Line program (airnefcmd). The graphical interface lets you to visually specify your download options, which are then passed to airnefcmd to perform the actual downloads. You can optionally use the command-line program directly, which enables you to script/automate your downloads. See the Command Line Reference in this page for details.
+
+Airnef maintains a permanent download history of every file you transfer. Airnef uses this history to allow you to automatically skip over files you've already transferred, without having to specifically set a criteria that excludes those files. Airnef's default behavior is to skip files that are in its download history; you can override this behavior by unchecking the "Skip images/movies you've previously downloaded" option in each of the dialogs.
+
+The Airnef GUI tries its best to be intuitive by remembering all the options you specified on your last download, along with the last 32 directories you've used. These options are saved every time you initiate a download operation.
+
+## Selecting images in the camera (only supported on Nikon cameras)
+
+1. Click the "Select in Camera" button on the Main Application Dialog, which will bring up the Select in Camera dialog.
+1. On your camera, find the menu location where files can be selected for upload, which varies depending on model. You should look for the option that reads similar to "Select for Upload" or "Select to send to smart device" or "Send to smartphone", etc... The Media Transfer Protocol (MTP) interface that Airnef uses to communicate with the cameras is principally oriented for sending images to smartphones, which is why you may need to look for the "Send to smartphone" option on your camera even though you'll be sending the images to your computer running Airnef. Some cameras also allow you to select images in the playback menu, including the Nikon D7200 and D750 - what's nice about these models is that the selections persist across camera power cycles, which means you can select images as you're shooting across multiple days and then use Airnef to download your selected images all at once.
+1. Once you've located your camera's menu that allows choosing files to upload, select one or more files in the camera using the button shortcuts depicted on your camera's screen. For example on the Nikon D7200 the button is the zoom-out key; on the Nikon J4 it's the bottom button of the circular multi-selector.
+1. When you've finished selecting which files to upload your camera will either let you proceed directly to enabling its WiFi (Nikon J4 allows this by pressing the OK button on the multi-selector), or it may require you to enable the WiFi as a separate step (Nikon D7200). Use whichever method is available to enable the camera's WiFi
+1. Once the camera's WiFi is enabled you should see its SSID in the available wireless networks on your computer. Nikon prefixes their SSID with "Nikon_", for example "Nikon_WU2_52A670FB7F45". Connect to the camera's network on your computer by selecting its SSID. Ideally you'd like to configure your computer to automatically connect to your camera's WiFi whenever it's available, although not every operating system may support this. Windows supports this - please read the wireless setup instructions on this page for details.
+1. In the 'Select in Camera' dialog, set your output directory. The default directory is the one specified when you last used Airnef. If this is the first time you're using Airnef then the default directory will be your home Pictures directory (/users/yourusername/Pictures). Airnef remembers the most recent directories you've used in Airnef (up to 32), sorted by how recently you used each directory. If the directory you want is not already in the list you can click the 'More choices' button to summon a directory navigation dialog that will allow you to either navigate to your directory of choice or enter a directory path manually.
+1. Set how you'd like Airnef to handle filename conflicts, ie what you'd like Airnef to do if it encounters any files on your system with the same name as the ones you've selected to download. By default Airnef will create a unique filename for any incoming files whose names conflict with existing files. The full options are:
+  - generate unique filename - a unique filename will be generated by adding a -new-x suffix, where 'x' is the first non-used numerical suffix for files in the directory. For example, DSC_1256.NEF becomes DSC_1256-new-1.NEF. If that file also exists the name becomes DSC_1256-new-2.NEF, etc
+  - overwrite file - existing file will be deleted at the start of the download
+  - skip file - file will be skipped (not downloaded)
+  - prompt for each file - you'll be prompt for the action to take for each filename conflict
+  - exit - Airnef will terminate
+1. By default Airnef will skip over images/movies you've downloaded from the camera on a previous session. You can override this behavior by unchecking the "Skip images/movies you've previously downloaded" option, which will cause Airnef to ignore its download history.
+1. If you'd like to enter realtime transfer mode after the download of your in-camera selected images has completed (ie, transfer images from the camera as you take them), set 'Realtime download' to 'normal download then realtime'.
+1. Click the 'Start Download' button to begin the transfer. Airnef will launch airnefcmd in its own terminal window - airnefcmd is the command-line utility that handles all communication with the camera, including the downloads. airnefcmd will report the progress of its operations in its terminal window, exiting when it's complete, or when it encounters what it believes is an unrecoverable error, or if you cancel the transfer by press <ctrl-c>
+1. After airnefcmd exits, Airnef will display a transfer report that contains all the progress information generated by airnefcmd. For brevity the report excludes information about files that were skipped due to being in the download history (ie, files skipped because you previously downloaded them). If you'd like to see when the skipped files were previously downloaded and to what location, set the Logging: option to 'verbose' before clicking 'Start Download'
+
+## Selecting images by criteria on the computer (Nikon, Canon, and Sony cameras)
+
+1. Enable WiFi on your camera. For Canon cameras you can use either an ad hoc wireless network created by the camera or have the camera connect to your existing wireless network. For Sony cameras you enable WiFi transfer mode via the Send to Computer option in the camera's wireless menu.
+1. Launch Airnef if you haven't already done so and click the "Select on Computer" button on the Main Application Dialog, which will bring up the Select on Computer dialog.
+1. By default Airnef will download every image/video file on the camera, except for those you've previously downloaded. The 'Select on Computer' dialog lets you to establish any combination of criteria that then limits which of those files get downloaded.
+1. The 'File Types' section lets you choose which types of files are downloaded, based on the extension of the file. The built-in types are NEF, JPG, TIF, MOV, and CR2. If your camera supports a type not listed you can enter its extension in the 'More:' field that is positioned next to the built-in types.
+1. The 'Capture Date' section lets you limit which files are downloaded based on a capture/acquisition date. You can choose from either the preselected set of dates (today, yesterday, past week, past month, past year), or enter a custom date range. For the custom date range you can enter a starting date, ending date, or both. Each date must be in the format of mm/dd/yy and include leading zeros - for example, "05/02/12". You an optionally include a time specification as well, in the form of hh:mm:ss - for example, "05/02/12 15:35:15". When you specify a starting date without a time, the time will be assumed to start from midnight. When you specify an ending date without a time, the time will assumed to end at 23:59:59. For example, a starting date of 04/05/12 and ending date of 04/10/12 will download all files captured on or after 04/05/12 at midnight and on or before 04/10/12 23:59:59.
+1. The 'Media Card' section lets you specify which media card slot on the camera will be used as the source of the images to download. By default Airnef will use the first populated card slot it finds, starting from the first slot. You can optionally override this by specifying a particular slot. You can also download from both media cards for cameras with dual-card support; however this method is not recommended when you have the second slot configured for backup mode because it will cause Airnef to download the same image twice.
+1. The 'Download Order' option lets you to specify the chronological order by which files are downloaded (by capture-date). The choices are oldest-first or newest-first. This option doesn't limit which files are downloaded, only the order by which they're downloaded. This is useful when you'd like to start working on more recently taken images/movies right away (as they download), rather than waiting for the download of all the files to complete.
+1. The 'Output Directory' section lets you specify where the downloaded files will be placed. The default directory is the one specified when you last used Airnef. If this is the first time you're using Airnef then the default directory will be your home Pictures directory (/users/yourusername/Pictures). Airnef remembers the most recent directories you've used in Airnef (up to 32), sorted by how recently you used each directory. If the directory you want is not already in the list you can click the 'More choices' button to summon a directory navigation dialog that will allow you to either navigate to your directory of choice or enter a directory path manually.
+1. The 'If File(s) Exist' section lets you specify how Airnef will handle filename conflicts, ie what you'd like Airnef to do if it encounters any files on your system with the same name as the ones you've selected to download. By default Airnef will create a unique filename for any incoming files whose names conflict with existing files. The full options are:
+  - generate unique filename - a unique filename will be generated by adding a -new-x suffix, where 'x' is the first non-used numerical suffix for files in the directory. For example, DSC_1256.NEF becomes DSC_1256-new-1.NEF. If that file also exists the name becomes DSC_1256-new-2.NEF, etc
+  - overwrite file - existing file will be deleted at the start of the download
+  - skip file - file will be skipped (not downloaded)
+  - prompt for each file - you'll be prompt for the action to take for each filename conflict
+  - exit - Airnef will terminate
+1. The 'Additional Args' section lets you specify additional command line arguments to be passed to airnefcmd. These can be options that allow for additional selection criteria and/or options that control the general operation of airnefcmd. See the Command Line Reference section on this page for a full list of arguments.
+1. The 'Skip images/movies you've previously downloaded' option allows you to control whether Airnef should skip (ie, not download) files you've previously downloaded from the camera.
+1. If you'd like to enter realtime transfer mode after the download of your in-camera selected images has completed (ie, transfer images from the camera as you take them), set 'Realtime download' to 'normal download then realtime'.
+1. With your criteria now set, you can either click 'Start Download' to perform the transfer or 'Preview File List for Criteria' if you'd first like to see a directory listing of files on the camera, filtered by your criteria. Note that the list will include files you've already downloaded even if you've checked the 'Skip images/movies you've previously downloaded' option; however, those files will not be re-downloaded once you click 'Start Download' (unless you've unchecked the option).
+
+## Realtime Downloads
+
+Airnef supports a realtime download mode, where it will transfer images from your camera as you shoot them. Only certain camera models support taking photographs while in the WiFi mode used by Airnef - see the camera feature matrix here for details. Even if your camera doesn't support taking pictures while WiFi is enabled you can still achieve faux-realtime transfers (termed 'staged realtime') by taking pictures with WiFi off and turning your camera's WiFi mode on - when Airnef detects the camera it will automatically transfer the images you've taken. You can tell when the staged transfers are done on Sony cameras by waiting for the Send to Computer screen to go away - Airnef actually puts the camera into sleep mode after the downloads complete, which conserves battery life if you leave the camera unattended after enabling WiFi. For other camera models you can watch the SD/CF access light (usually green) and wait for it to stop flickering, indicating that the transfers are done. You can then turn WiFi back off and resume shooting. You don't have to wait for the transfers to complete before turning WiFi back off - if you turn WiFi off in the middle of a transfer Airnef will remember which image it was downloading when it lost the WiFi connection to the camera and then resume downloading from that point when the camera's WiFi is available again. This process can be repeated any number of times while Airnef is running. You can also use this staged process on cameras that support actual realtime shooting as well, for example if you want an opportunity to review/delete images before they're transferred by Airnef , or to conserve battery life by keeping WiFi off most of the time, or if you're taking photos at a far distance from the computer/router and WiFi reception will be poor and slow. Staged transfers are particularly useful on Nikon cameras using external WU-1a/WU-1b WiFi adapters because that setup disables access to the image review function while the WiFi adapter is enabled, so the only way to review images before they're transferred is by disabling WiFi. Canon bodies let you review images while in WiFi mode and let you delete image(s) as well - if you delete an image that Airnef is actively transferring then Airnef will detect the deletion and skip to the next file.
+
+As part of Airnef's staged download support the camera does not have to be powered on (or its WiFi enabled) when you start the realtime download mode. Simply press the 'Start Download' within Airnef and it will enter a connection loop waiting for the camera to become available. However on Canon and Nikon cameras the realtime mode will launch faster if the camera is available when 'Start Download' is pressed (this allows Airnef to avoid the initial download of file information at the start of realtime mode).
+
+When using the realtime download mode your camera's clock must be synchronized with the system clock of your computer - this is necessary because Airnef uses the timestamp of the images you taken to establish which images were shot in realtime (ie, shot after you started Airnef). Failing to keep the clock's synchronized means either Airnef will skip over the realtime images you take (if the camera's clock is running behind your system clock) or transfer images that were taken before you started Airnef (if the camera's clock is running ahead of your system clock). Fortunately Airnef automatically synchronizes the camera's clock on most Nikon and Canon cameras - you only need to assure that the camera's time zone and DST setting (Daylight Savings Time for USA users) are matched between camera and system, as these attributes aren't programmable over the WiFi connection.
+
+You can use the realtime download mode either in combination with the normal transfer mode or by itself in a realtime-only mode. When used in combination with the normal transfer mode Airnef will first transfer all the images that match your selected criteria, then enter the realtime download mode when those transfers are complete. This allows you to transfer images you already have on the camera while shooting new, realtime images as well - in other words, you can start shooting new images immediately without waiting for the download of the existing images to complete. When configured for realtime-only mode Airnef will ignore any existing images you have on the camera and only download images that were taken after Airnef is started (specifically, after the 'Start Download' button is pressed).
+
+Regardless of which realtime mode you use, Airnef will apply the selection criteria you specified in the dialog for realtime downloads the same as it does for normal downloads (the only exception is the capture date criteria, which naturally doesn't apply to realtime downloads since you're instructing Airnef to transfer images taken now). For example if you've configured Airnef to only download JPG files but have the camera configured for raw+JPG, Airnef will only download the JPG files shot in realtime. The same applies to the 'Media Card' configuration - if your camera has dual media slots but you've configured Airnef to only download images from slot #2, Airnef will only download realtime images that the camera saves to slot #2.
+
+By default Airnef will poll the camera every 3 seconds to check for new images to download. This interval was selected to strike a reasonable balance between responsiveness and battery life. You can modify the polling interval via the --realtimepollsecs option. Use a shorter interval if you'd like Airnef to respond to new images faster, or a longer interval to increase battery life. Any value above 30 seconds will likely cause the camera to drop the WiFi connection due to an inactivity timeout - for very long polling intervals I suggest turning the camera's WiFi off/on during shooting so that you can manually decide when images should be transferred.
+
+See the Download Exec section below for optionally launching an image viewing application for each downloaded file, which is especially useful for realtime downloads.
+
+Here is a video demonstration of the realtime download feature:
+
+## Download Exec
+
+Airnef can optionally launch an application of your choice for each file downloaded, in both normal or realtime download modes. For example you can automatically launch an image review application to display each image as it's downloaded. This feature is accessed via the --downloadexec command option, which can be entered in the 'Additional Args' field of the GUI. The behavior of downloadexec can be further configured via --downloadexec_extlist (to limit which file types your application is launched for and downloadexec_options (various options such as waiting for the launched app to complete before continuing to next download).
+
+When launching an image viewing application via downloadexec you'll typically want to configure the application for single window/instance operation (if supported) - that way each downloaded image will be displayed in the same window instead of creating a bunch of separate windows.
+
+Here are some sample command-line recipes for various popular image viewing applications. For best results you should copy 'n paste these sample commands lines rather than typing them yourself.
+
+**FastStone Image Viewer - Microsoft Windows** (link)  
+By default FastStone operates in single-window mode when launched by Airnef. To configure the window in which the image is displayed go to to Settings -> 'Associated images launches in' and choose one of the following per your preference 'Full Screen', 'Browser View', 'Windowed View'.  
+32-bit Windows: `--downloadexec "C:\Program Files\FastStone Image Viewer\FSViewer.exe" @pf@`  
+64-bit Windows: `--downloadexec "C:\Program Files (x86)\FastStone Image Viewer\FSViewer.exe" @pf@`
+
+**Irfanview Image Viewer - Microsoft Windows** (link)  
+By default Irfanview operates in multi-window mode. To configure single-window mode go to Options -> Properties/Settings... -> Start/ Exit options -> 'Only 1 instance of Irfan View is active'. Note that Irfanview doesn't support raw images so --downloadexec_extlist JPG is included in these sample command lines:  
+32-bit Windows: `--downloadexec "C:\Program Files\IrfanView\i_view32.exe" /file=@pf@ --downloadexec_extlist JPG`  
+64-bit Windows: `--downloadexec "C:\Program Files (x86)\IrfanView\i_view32.exe" /file=@pf@ --downloadexec_extlist JPG`
+
+**FastRawViewer - Microsoft Windows** (link)  
+By default FastRawViewer operates in multi-window mode. To configure single-window mode go to File -> Preferences -> Other -> 'Run single program instance'.  
+32-bit/64-bit Windows: `--downloadexec "C\Program Files\LibRaw\FastRawViewer\FastRawViewer.exe" @pf@`  
+64-bit Windows running 32-bit version of FastRawViewer: `--downloadexec "C\Program Files (x86)\LibRaw\FastRawViewer\FastRawViewer.exe" @pf@`
+
+**Image Preview - Mac/OSX** (built-in application)  
+By default the OSX preview image operates in single-window mode.  
+Open using default viewing application (most systems this is Image Preview): `--downloadexec open @pf@`  
+Open using Image Preview specifically: `--downloadexec open ~a Preview @pf@`
+
+**FastRawViewer - Mac/OSX** (link)  
+By default FastRawViewer operates in multi-window mode. To configure single-window mode go to File -> Preferences -> Other -> 'Run single program instance'.  
+
+```text
+--downloadexec /Applications/FastRawViewer.app/Contents/MacOS/FastRawViewer @pf@
+```
+
+**Eye of GNMODE (eog) - Linux** (included with most Linux distributions - link)  
+
+```text
+--downloadexec eog ~~single-window @pf@
+```
