@@ -56,7 +56,7 @@ This is a partial list of camera's I've personally tested. Even if your camera i
 |---|---|
 | `airnef.pyw` | GUI (Tkinter) - builds the command line and launches `airnefcmd` |
 | `airnefcmd.py` | Command-line app: session, object enumeration, cache, download, realtime, retry |
-| `mtpwifi.py` | PTP/IP transport (TCP 15740): Init Command/Event, Probe, packet send/receive |
+| `mtpwifi.py` | PTP/IP transport (CIPA DC-005, TCP 15740): handshake, data phases, cancel, keep-alive, background event channel |
 | `mtpdef.py` | PTP/MTP constants (opcodes, responses, events, device props) incl. Nikon/Canon/Sony vendor codes |
 | `ssdp.py` | SSDP discovery (`--ipaddress auto`) for Sony/Canon |
 | `rename.py` | Rename engine |

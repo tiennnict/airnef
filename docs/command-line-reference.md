@@ -120,6 +120,10 @@ The verbosity level of logging for an airnefcmd session. Airnef outputs its mess
 
 The following is a list of less common arguments that can be used when troubleshooting or debugging the operation of airnefcmd. These options are hidden from the --help display, to limit the clutter of options presented for normal use.
 
+### `--port` <port>
+
+The TCP port of the camera's PTP-IP service. The default is 15740, the IANA-assigned PTP-IP port that cameras listen on. Changing it is only useful for testing against a simulated camera.
+
 ### `--connecttimeout` <seconds>
 
 The amount of time to wait for a TCP/IP socket connection to be established with the camera. The default is 10 seconds. When Nikon's ad hoc wireless network is ready the camera usually connects very quickly. However it may take a little longer if the user just enabled the WiFi option on the camera and/or just selected the network on his computer. Canon bodies usually take a bit longer to establish a connection, esp if its WiFi has been idle for some period of time.

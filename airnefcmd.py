@@ -147,6 +147,7 @@ class GlobalVarsStruct:
 	
 		self.socketPrimary = None
 		self.socketEvents = None
+		self.eventChannel = None						# mtpwifi.EventChannel servicing socketEvents
 		
 		self.cameraMake = CAMERA_MAKE_UNDETERMINED 
 		self.realtimeDownloadMethod = None
@@ -955,9 +956,33 @@ def closeSockets():
 		g.socketPrimary.close()
 		g.socketPrimary = None
 	if g.socketEvents:
-		g.socketEvents.close()
+		g.socketEvents.close()	# also ends the EventChannel thread
 		g.socketEvents = None
-		
+	g.eventChannel = None
+	mtpwifi.gEventChannel = None
+
+#
+# waits up to 'secs' for the camera to report activity on the event connection. returns early
+# when an ObjectAdded event arrives so realtime downloads start right away instead of at the
+# next polling interval. falls back to a plain sleep when there is no event connection
+#
+def waitForCameraActivity(secs):
+	if not g.eventChannel or g.eventChannel.closed:
+		time.sleep(secs)
+		return False
+	timeEnd = time.time() + secs
+	while True:
+		timeLeft = timeEnd - time.time()
+		if timeLeft <= 0:
+			return False
+		events = g.eventChannel.waitForEvents(min(timeLeft, 0.25)) # short slices keep <ctrl-c> responsive on Windows
+		if any(event.eventCode == MTP_EVENT_ObjectAdded for event in events):
+			applog_d("waitForCameraActivity(): ObjectAdded event received")
+			return True
+		if g.eventChannel.closed:
+			time.sleep(max(timeEnd - time.time(), 0))
+			return False
+
 #
 # converts a GUID string to a pair of 64-bit values (high/low).
 # the following string formats are support:
@@ -1113,9 +1138,14 @@ def startMtpSession():
 	#
 	# get session ID
 	#
-	data = mtpwifi.sendInitCmdReq(g.socketPrimary, (guidHigh, guidLow), g.args['initcmdreq_hostname'], g.args['initcmdreq_hostver'])
-	(g.sessionId,) = struct.unpack('<I', data[:4])
-	applog_d("Session ID = 0x{:08x}".format(g.sessionId))
+	mtpwifi.resetTransactionIds()
+	initCommandAck = mtpwifi.sendInitCmdReq(g.socketPrimary, (guidHigh, guidLow), g.args['initcmdreq_hostname'], g.args['initcmdreq_hostver'])
+	g.sessionId = initCommandAck.connectionNumber
+	applog_d("Session ID = 0x{:08x}, camera name = \"{:s}\", PTP-IP version = {:s}".format(g.sessionId, initCommandAck.responderName,
+		"0x{:08x}".format(initCommandAck.protocolVersion) if initCommandAck.protocolVersion is not None else "not reported"))
+	if initCommandAck.protocolVersion is not None and (initCommandAck.protocolVersion >> 16) != (mtpwifi.MTP_TCPIP_PROTOCOL_VERSION >> 16):
+		# a different major version may not be compatible (CIPA DC-005 5.5) - warn but carry on, some cameras report odd values
+		applog_w("Warning: camera reports PTP-IP protocol version 0x{:08x}, airnef implements 0x{:08x}".format(initCommandAck.protocolVersion, mtpwifi.MTP_TCPIP_PROTOCOL_VERSION))
 		
 	#
 	# open secondary socket for events
@@ -1129,6 +1159,13 @@ def startMtpSession():
 	# to hang unless I replace the probe with a one-second delay)
 	#
 	mtpwifi.sendProbeRequest(g.socketEvents)
+
+	#
+	# service the event connection in the background from here on: answer the camera's
+	# probes and collect its events (used to react to new images in realtime mode)
+	#
+	g.eventChannel = mtpwifi.EventChannel(g.socketEvents)
+	mtpwifi.gEventChannel = g.eventChannel
 	
 	#
 	# get device information, which is needed now because some cameras
@@ -3232,7 +3269,7 @@ def realTimeCapture_NikonEventsMethod():
 			#
 			# no new files in this event list. sleep before checking again
 			#
-			time.sleep(g.args['realtimepollsecs'])
+			waitForCameraActivity(g.args['realtimepollsecs'])
 			
 	except KeyboardInterrupt as e: # <ctrl-c> pressed
 		consoleClearLine()
@@ -3340,7 +3377,7 @@ def realTimeCapture_MtpObjPollingMethod():
 			#
 			# no new objects. sleep before checking again
 			#
-			time.sleep(g.args['realtimepollsecs'])
+			waitForCameraActivity(g.args['realtimepollsecs'])
 			
 	except KeyboardInterrupt as e: # <ctrl-c> pressed
 		consoleClearLine()

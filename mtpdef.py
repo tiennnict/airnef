@@ -281,6 +281,7 @@ MTP_RESP_InvalidDevicePropFormat				= 0x201b
 MTP_RESP_InvalidDevicePropValue					= 0x201c
 MTP_RESP_InvalidParameter						= 0x201d
 MTP_RESP_SessionAlreadyOpen						= 0x201e
+MTP_RESP_TransactionCancelled					= 0x201f
 MTP_RESP_SpecificationOfDestinationUnsupported	= 0x2020
 MTP_RESP_HardwareError							= 0xa001
 MTP_RESP_OutOfFocus								= 0xa002
@@ -331,6 +332,7 @@ MtpRespDescDictionary = {\
 	MTP_RESP_InvalidDevicePropValue : 'MTP_RESP_InvalidDevicePropValue',
 	MTP_RESP_InvalidParameter : 'MTP_RESP_InvalidParameter',
 	MTP_RESP_SessionAlreadyOpen : 'MTP_RESP_SessionAlreadyOpen',
+	MTP_RESP_TransactionCancelled : 'MTP_RESP_TransactionCancelled',
 	MTP_RESP_SpecificationOfDestinationUnsupported : 'MTP_RESP_SpecificationOfDestinationUnsupported',
 	MTP_RESP_HardwareError : 'MTP_RESP_HardwareError',
 	MTP_RESP_OutOfFocus : 'MTP_RESP_OutOfFocus',

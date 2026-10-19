@@ -23,8 +23,10 @@ import socket
 import sys
 import struct
 import time
+import threading
 import strutil
 import errno
+from collections import deque
 from applog import *
 from mtpdef import *
 from collections import namedtuple
@@ -42,6 +44,19 @@ SOCKET_TIMEOUT_READS_WRITES_DEFAULT		= 5		# we configure the socket to time out 
 MTP_TCPIP_REQ_INIT_CMD_REQ			= 0x01	# "host introduction" is arbtirary name - don't know what undocumented PTP-TCP/IP spec calls it
 MTP_TCPIP_REQ_INIT_EVENTS			= 0x03	# "init events" is arbtirary name - don't know what undocumented PTP-TCP/IP spec calls it
 MTP_TCPIP_REQ_PROBE					= 0x0d  # "probe request"
+MTP_TCPIP_PROBE_RESPONSE			= 0x0e	# Probe Response packet
+MTP_TCPIP_INIT_CMD_ACK				= 0x02	# Init Command Ack packet
+MTP_TCPIP_INIT_EVENT_ACK			= 0x04	# Init Event Ack packet
+MTP_TCPIP_INIT_FAIL					= 0x05	# Init Fail packet (either connection)
+MTP_TCPIP_EVENT						= 0x08	# Event packet (event connection)
+MTP_TCPIP_CANCEL					= 0x0b	# Cancel packet (sent on both connections)
+
+# Init Fail reason codes (CIPA DC-005 2.3.5)
+MTP_TCPIP_INIT_FAIL_REJECTED_INITIATOR	= 0x1
+MTP_TCPIP_INIT_FAIL_BUSY				= 0x2
+MTP_TCPIP_INIT_FAIL_UNSPECIFIED			= 0x3
+
+MTP_TCPIP_PROTOCOL_VERSION			= 0x00010000	# PTP-IP binary protocol version 1.0 (CIPA DC-005 section 3)
 
 #
 # identifiers for types of payloads that can be sent
@@ -63,6 +78,16 @@ MTP_TCPIP_MAX_FRIENDLY_NAME_CHARS = 40				# max Init Command friendly name lengt
 # structure (named tuple) returned by our execMtpOp() method
 #
 MtpTcpCmdResult = namedtuple('MTPTcpCmdResult', 'mtpRespCode mtpResponseParameter dataReceived')
+
+#
+# contents of the Init Command Ack packet (CIPA DC-005 2.3.2)
+#
+InitCommandAck = namedtuple('InitCommandAck', 'connectionNumber responderGuid responderName protocolVersion')
+
+#
+# event received on the event connection (CIPA DC-005 2.3.8)
+#
+MtpTcpEvent = namedtuple('MtpTcpEvent', 'eventCode transactionId parameters')
 
 #
 # exceptions thrown by our methods. 
@@ -88,6 +113,16 @@ class MtpConnectionFailureException(Exception):
 gTransferInterruptedBySIGINT = False
 g_PartialRxDataPayloadData = None
 g_PartialRxDataPayloadData_SizeIndicated = None
+gEventChannel = None				# EventChannel of the current session, used to send Cancel packets
+
+#
+# receive position within the current command-connection packet. if a <ctrl-c> interrupts a
+# receive part way through a packet, cancelTransaction() uses this to skip the rest of the
+# packet and get back in sync with the packet stream
+#
+g_RxInPacket = False
+g_RxPreambleSoFar = b''
+g_RxBodyBytesRemaining = 0
 
 
 #
@@ -100,6 +135,15 @@ def transactionIdCounter():
 		k += 1
 		yield k
 generateTransactionId = transactionIdCounter()
+
+#
+# TransactionIDs are unique only within a session and start at 1 (CIPA DC-005 1.6.5), so the
+# counter is restarted for every new session (including retry sessions)
+#
+def resetTransactionIds():
+	global generateTransactionId, gTransferInterruptedBySIGINT
+	generateTransactionId = transactionIdCounter()
+	gTransferInterruptedBySIGINT = False
 
 #
 # Transmits data over MTP-TCP/IP socket
@@ -126,6 +170,7 @@ def recvChunk(s, maxBytes):
 def rxPayload(s, rxProgressFunc=None):
 
 	global g_PartialRxDataPayloadData, g_PartialRxDataPayloadData_SizeIndicated
+	global g_RxInPacket, g_RxPreambleSoFar, g_RxBodyBytesRemaining
 
 	totalPayloadBytes = 0			# need to initialize here in case exception occurs before var is set
 	payloadBytesReceived = 0		# need to initialize here in case exception occurs before var is set
@@ -136,11 +181,14 @@ def rxPayload(s, rxProgressFunc=None):
 	try:
 
 		# transmitter first sends word indicating size of payload to follow. TCP may deliver it in pieces
-		dataPreamble = b''
-		while len(dataPreamble) < 4:
-			dataPreamble += recvChunk(s, 4 - len(dataPreamble))
-		(totalBytesIncludingPreamble,) = struct.unpack('<I', dataPreamble)
+		g_RxInPacket = True
+		g_RxPreambleSoFar = b''
+		g_RxBodyBytesRemaining = 0
+		while len(g_RxPreambleSoFar) < 4:
+			g_RxPreambleSoFar += recvChunk(s, 4 - len(g_RxPreambleSoFar))
+		(totalBytesIncludingPreamble,) = struct.unpack('<I', g_RxPreambleSoFar)
 		totalPayloadBytes = totalBytesIncludingPreamble-4
+		g_RxBodyBytesRemaining = totalPayloadBytes
 		if totalPayloadBytes < 4:
 			raise MtpProtocolException("Camera Protocol Error: invalid PTP-IP packet length 0x{:x}".format(totalBytesIncludingPreamble))
 
@@ -150,6 +198,7 @@ def rxPayload(s, rxProgressFunc=None):
 			chunk = recvChunk(s, totalPayloadBytes - payloadBytesReceived)
 			chunks.append(chunk)
 			payloadBytesReceived += len(chunk)
+			g_RxBodyBytesRemaining -= len(chunk)
 			if payloadId is None:
 				header += chunk[:4 - len(header)]
 				if len(header) >= 4:
@@ -159,6 +208,7 @@ def rxPayload(s, rxProgressFunc=None):
 				rxProgressFunc(payloadBytesReceived - 8) # -8 to exclude header data from count
 
 		# return the data received [not including 4-byte size preamble]
+		g_RxInPacket = False
 		return b''.join(chunks)
 	except socket.error as error:
 		data = b''.join(chunks)
@@ -385,10 +435,51 @@ def execMtpOp(s, mtpOp, cmdArgsPacked=b'', dataToSend=b'', rxTxProgressFunc=None
 						format(getMtpOpDesc(mtpOp), bytesReceivedLastPayload, lastPayloadExpectedSize, len(dataReceivedSoFar), totalDataTransferSizeBytesExpectedAcrossAllPayloads, str(e)),
 						bytes(dataReceivedSoFar), totalDataTransferSizeBytesExpectedAcrossAllPayloads)										
 
-		except KeyboardInterrupt as e: # <ctrl-c> pressed			
+		except KeyboardInterrupt as e: # <ctrl-c> pressed
+			#
+			# cancel the transaction the standard way (CIPA DC-005 2.7.1) so the session stays usable and
+			# can be closed cleanly. if that doesn't work the session is in an unknown state and no more
+			# requests can be issued on it
+			#
 			gTransferInterruptedBySIGINT = True
-			applog_d("gTransferInterruptedBySIGINT set")
+			try:
+				respCode = cancelTransaction(s, txTransactionId)
+				gTransferInterruptedBySIGINT = False
+				applog_d("execMtpOp: {:s} cancelled, camera responded {:s}".format(getMtpOpDesc(mtpOp), getMtpRespDesc(respCode)))
+			except (socket.error, MtpProtocolException) as cancelError:
+				applog_d("execMtpOp: cancel of {:s} failed ({:s}) - gTransferInterruptedBySIGINT set".format(getMtpOpDesc(mtpOp), str(cancelError)))
 			raise
+
+#
+# cancels the transaction in progress on the command connection (CIPA DC-005 2.7.1): a Cancel
+# packet is sent on both connections, then any remaining data packets of the transaction are
+# read and discarded until the camera's Operation Response arrives. returns the response code
+#
+def cancelTransaction(s, txTransactionId, timeoutSecs=10):
+	global g_RxInPacket
+	cancelPacket = struct.pack('<II', MTP_TCPIP_CANCEL, txTransactionId)
+	txdata(s, cancelPacket)
+	if gEventChannel:
+		gEventChannel.send(cancelPacket)
+	# skip the remainder of a packet whose receive was interrupted
+	if g_RxInPacket:
+		preamble = g_RxPreambleSoFar
+		while len(preamble) < 4:
+			preamble += recvChunk(s, 4 - len(preamble))
+		remaining = g_RxBodyBytesRemaining if len(g_RxPreambleSoFar) == 4 else struct.unpack('<I', preamble)[0] - 4
+		while remaining > 0:
+			remaining -= len(recvChunk(s, min(remaining, 65536)))
+		g_RxInPacket = False
+	timeEnd = time.time() + timeoutSecs
+	while time.time() < timeEnd:
+		data = rxPayload(s)
+		(payloadId,) = struct.unpack('<I', data[0:4])
+		if payloadId == MTP_TCPIP_PAYLOAD_ID_CmdResponse:
+			(respCode, rxTransactionId) = struct.unpack('<HI', data[4:10])
+			if rxTransactionId == txTransactionId:
+				return respCode
+		# else a data packet of the cancelled transaction - discard
+	raise MtpProtocolException("Timed out waiting for the camera to acknowledge a cancelled transaction")
 						
 			
 #
@@ -409,8 +500,10 @@ def sendInitCmdReq(s, guidHighLowTuple, hostNameStr, hostVerInt):
 			applog_d("sendInitCmdReq() response:")
 			applog_d(strutil.hexdump(rxdata))
 		(wordResponse,) = struct.unpack('<I',rxdata[:4])
-		if wordResponse == 0x2 and len(rxdata) >= 8:	# make sure first 32-bit word is equal to a value of 0x2 ("ACK") and has 4-byte session ID after
-			return rxdata[4:]
+		if wordResponse == MTP_TCPIP_INIT_CMD_ACK and len(rxdata) >= 8:
+			return parseInitCommandAck(rxdata)
+		elif wordResponse == MTP_TCPIP_INIT_FAIL and len(rxdata) >= 8 and struct.unpack('<I', rxdata[4:8])[0] != MTP_TCPIP_INIT_FAIL_REJECTED_INITIATOR:
+			raise MtpConnectionFailureException(initFailMessage(rxdata))
 		else:
 			raise MtpProtocolException(\
 				"\nThe camera is rejecting the unique identifier (GUID) that airnef is\n"\
@@ -425,8 +518,35 @@ def sendInitCmdReq(s, guidHighLowTuple, hostNameStr, hostVerInt):
 		# connection but then not respond to any MTP discovery/command requests. the only way to
 		# recover from this condition was to cycle the WiFi enable on the camera or cycle its power
 		#
-		applog_e("\nCamera is accepting connections but failing to negotiate a session. You may\nneed to turn the camera's WiFi off and of or cycle the camera's power to\nrecover. You can leave airnefcmd running while doing this.")
-		sys.exit(errno.ETIMEDOUT)
+		raise MtpConnectionFailureException("\nCamera is accepting connections but failing to negotiate a session. You may\nneed to turn the camera's WiFi off and on or cycle the camera's power to\nrecover. You can leave airnefcmd running while doing this.")
+
+#
+# parses an Init Command Ack packet (CIPA DC-005 2.3.2): connection number, responder GUID,
+# null-terminated UTF-16 friendly name and protocol version. the trailing fields are optional
+# since not every camera sends them
+#
+def parseInitCommandAck(rxdata):
+	(connectionNumber,) = struct.unpack('<I', rxdata[4:8])
+	responderGuid = rxdata[8:24]
+	responderName = ''
+	protocolVersion = None
+	nameData = rxdata[24:]
+	for pos in range(0, len(nameData) - 1, 2):
+		if nameData[pos:pos+2] == b'\x00\x00':
+			responderName = nameData[:pos].decode('utf-16-le', errors='replace')
+			if len(nameData) >= pos + 6:
+				(protocolVersion,) = struct.unpack('<I', nameData[pos+2:pos+6])
+			break
+	return InitCommandAck(connectionNumber, responderGuid, responderName, protocolVersion)
+
+#
+# builds a user message for an Init Fail packet (CIPA DC-005 2.3.5)
+#
+def initFailMessage(rxdata):
+	(reason,) = struct.unpack('<I', rxdata[4:8]) if len(rxdata) >= 8 else (MTP_TCPIP_INIT_FAIL_UNSPECIFIED,)
+	if reason == MTP_TCPIP_INIT_FAIL_BUSY:
+		return "The camera is busy with another connection (Init Fail: busy). Will retry."
+	return "The camera refused the connection (Init Fail reason 0x{:x}).".format(reason)
 
 #
 # analog of sendInitCmdReq() but for the TCP/IP sockets used for events and
@@ -441,7 +561,9 @@ def sendInitEvents(s, sessionId):
 			applog_d("sendInitEvents() response:")
 			applog_d(strutil.hexdump(rxdata))
 		(wordResponse,) = struct.unpack('<I',rxdata[:4])
-		if wordResponse != 0x4:	# make sure first 32-bit word is equal to a value of 0x4 ("ACK")
+		if wordResponse == MTP_TCPIP_INIT_FAIL:
+			raise MtpConnectionFailureException(initFailMessage(rxdata))
+		if wordResponse != MTP_TCPIP_INIT_EVENT_ACK:
 			raise MtpProtocolException("sendInitEvents(): Bad response/ACK - expected 0x04, got 0x{:x}".format(wordResponse))
 	except socket.error as error:
 		raise
@@ -503,5 +625,93 @@ def openConnection(ipAddrStr, verbose, connectionTimeoutSecs=SOCKET_TIMEOUT_CONN
 	if (verbose):
 		applog_i("Connection established to {:s}:{:d}".format(ipAddrStr, port))
 	s.settimeout(readWriteTimeoutSecs)						# set per-call timeout on socket, most useful for our future recv() calls
-	s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)	# for performance
+	s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)	# no Nagle delays on commands/responses (CIPA DC-005 2.2.3.2)
+	enableTcpKeepAlive(s)
 	return s
+
+#
+# enables TCP keep-alive (CIPA DC-005 2.2.3.2) with short timers, so a camera that silently
+# disappears (WiFi turned off, out of range) is detected even while the connection is idle
+#
+def enableTcpKeepAlive(s, idleSecs=10, intervalSecs=2, count=5):
+	try:
+		s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+		if hasattr(socket, 'SIO_KEEPALIVE_VALS'):	# Windows
+			s.ioctl(socket.SIO_KEEPALIVE_VALS, (1, idleSecs*1000, intervalSecs*1000))
+		else:
+			for optName, value in (('TCP_KEEPIDLE', idleSecs), ('TCP_KEEPALIVE', idleSecs), ('TCP_KEEPINTVL', intervalSecs), ('TCP_KEEPCNT', count)):
+				if hasattr(socket, optName):
+					s.setsockopt(socket.IPPROTO_TCP, getattr(socket, optName), value)
+	except (OSError, ValueError) as e:
+		applog_d("enableTcpKeepAlive(): {:s}".format(str(e)))
+
+#
+# services the event connection on a background thread: answers Probe Requests from the camera
+# (a responder may probe to check the initiator is still alive, CIPA DC-005 2.3.13) and queues
+# Event packets so the application can react to them instead of only polling
+#
+class EventChannel:
+
+	MAX_QUEUED_EVENTS = 1024
+
+	def __init__(self, s):
+		self.s = s
+		self.sendLock = threading.Lock()
+		self.condition = threading.Condition()
+		self.events = deque(maxlen=EventChannel.MAX_QUEUED_EVENTS)
+		self.closed = False
+		self.probesAnswered = 0
+		self.thread = threading.Thread(target=self._run, name='airnef-ptpip-events', daemon=True)
+		self.thread.start()
+
+	def send(self, data):
+		with self.sendLock:
+			txdata(self.s, data)
+
+	def _run(self):
+		buf = bytearray()
+		try:
+			while True:
+				try:
+					chunk = self.s.recv(4096)
+				except socket.timeout:
+					continue
+				if not chunk:
+					break
+				buf += chunk
+				while len(buf) >= 8:
+					(length, packetType) = struct.unpack('<II', buf[:8])
+					if length < 8 or len(buf) < length:
+						break
+					payload = bytes(buf[8:length])
+					del buf[:length]
+					self._handlePacket(packetType, payload)
+		except (OSError, ValueError):
+			pass	# socket closed by the application
+		finally:
+			with self.condition:
+				self.closed = True
+				self.condition.notify_all()
+
+	def _handlePacket(self, packetType, payload):
+		if packetType == MTP_TCPIP_REQ_PROBE:
+			self.send(struct.pack('<I', MTP_TCPIP_PROBE_RESPONSE))
+			self.probesAnswered += 1
+		elif packetType == MTP_TCPIP_EVENT and len(payload) >= 6:
+			(eventCode, transactionId) = struct.unpack('<HI', payload[:6])
+			countParams = min((len(payload) - 6) // 4, 3)
+			parameters = struct.unpack('<{:d}I'.format(countParams), payload[6:6+countParams*4])
+			with self.condition:
+				self.events.append(MtpTcpEvent(eventCode, transactionId, parameters))
+				self.condition.notify_all()
+
+	#
+	# waits up to timeoutSecs for events, returning (and removing) everything queued
+	#
+	def waitForEvents(self, timeoutSecs):
+		with self.condition:
+			if not self.events and not self.closed:
+				self.condition.wait(timeoutSecs)
+			events = list(self.events)
+			self.events.clear()
+			return events

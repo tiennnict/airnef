@@ -102,7 +102,7 @@ class SimCamera:
                          0x1009, 0x100A, 0x1015, 0x1016, 0x101B, 0x90C7, 0x9408)
     camera_datetime: str = '20240102T030405'
     reject_initiator: bool = False       # answer Init Command Request with Init Fail
-    probe_initiator_on_connect: bool = False  # send a Probe Request on the event channel after the handshake
+    probe_initiator_on_open: bool = False  # send a Probe Request on the event channel when the session opens
 
     def __post_init__(self):
         self.ops_log = []                # (opcode, params) of every operation received
@@ -184,8 +184,6 @@ class SimCamera:
                 conn.sendall(packet(INIT_EVENT_ACK))
                 with self._lock:
                     self._event_conn = conn
-                if self.probe_initiator_on_connect:
-                    conn.sendall(packet(PROBE_REQUEST))
                 self._event_loop(conn)
         except (ConnectionError, OSError):
             pass
@@ -260,6 +258,10 @@ class SimCamera:
             return RC_OPERATION_NOT_SUPPORTED, None, []
         if opcode == 0x1001:
             return RC_OK, self._device_info(), []
+        if opcode == 0x1002 and self.probe_initiator_on_open:
+            with self._lock:
+                if self._event_conn:
+                    self._event_conn.sendall(packet(PROBE_REQUEST))
         if opcode in (0x1002, 0x1003):
             return RC_OK, None, []
         if opcode == 0x1004:
