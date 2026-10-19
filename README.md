@@ -45,7 +45,7 @@ This is a partial list of camera's I've personally tested. Even if your camera i
 
 | Document | Content |
 |---|---|
-| [docs/installation.md](docs/installation.md) | Windows, OS X, Linux, and running from Python source |
+| [docs/installation.md](docs/installation.md) | Running from source with uv (Python 3.12+), Windows wireless tip |
 | [docs/camera-setup.md](docs/camera-setup.md) | One-time setup for Nikon, SnapBridge, Sony and Canon; WiFi performance tips |
 | [docs/user-guide.md](docs/user-guide.md) | GUI guide, Realtime Downloads, Download Exec |
 | [docs/renaming-engine.md](docs/renaming-engine.md) | `--filenamespec` / `--dirnamespec`: specifiers, subscripts, options |
@@ -60,6 +60,7 @@ This is a partial list of camera's I've personally tested. Even if your camera i
 | `i18n.py`, `locale/` | Interface translations (gettext `.po` catalogs) |
 | `tools/extract_messages.py` | Extracts translatable strings into `locale/airnef.pot` and merges them into the catalogs |
 | `airnefcmd.py` | Command-line app entry point: environment setup and the session/retry loop |
+| `version.py` | Application version (single source of truth; see also `CHANGELOG.md`) |
 | `appstate.py` | Constants, error codes and the shared global state of airnefcmd |
 | `mtpdatasets.py` | Parsers for PTP/MTP datasets (DeviceInfo, StorageInfo, ObjectInfo, Nikon events) |
 | `camerasession.py` | Connecting to the camera, MTP session, storage selection, device properties, clock sync |

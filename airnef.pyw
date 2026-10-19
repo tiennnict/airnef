@@ -42,7 +42,7 @@ from i18n import _, N_
 #
 # constants
 #
-AIRNEF_APP_VERSION	= "1.1"
+from version import __version__ as AIRNEF_APP_VERSION
 APP_CONFIG_VERSION	= 2		# v2 stores option keys instead of (English) display text
 OUTPUTDIR_HISTORY_MAX = 32	# number of most-recently-used output directories remembered
 PAD = 8						# standard spacing between widgets, in pixels
