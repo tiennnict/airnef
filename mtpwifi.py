@@ -56,6 +56,9 @@ MTP_TCPIP_PAYLOAD_ID_DataPayloadLast	= 0x0c	# "data payload last" is arbtirary n
 MTP_TCPIP_CmdReq_DataDir_CameraToHost_or_None = 0x1	# data direction is Camera -> Host or No Data
 MTP_TCPIP_CmdReq_DataDir_HostToCamera = 0x2			# data direction is Host -> Camera
 
+MTP_TCPIP_DATA_LENGTH_UNKNOWN = 0xFFFFFFFFFFFFFFFF	# Start Data 'Total Data Length' value for data of unknown size
+MTP_TCPIP_MAX_FRIENDLY_NAME_CHARS = 40				# max Init Command friendly name length, including NULL
+
 #
 # structure (named tuple) returned by our execMtpOp() method
 #
@@ -104,8 +107,19 @@ generateTransactionId = transactionIdCounter()
 def txdata(s, data):
 	if isDebugLog():
 		applog_d(strutil.hexdump(data[:min(len(data),1024)]))
-	s.send(struct.pack('<I',len(data)+4)+data)
-	
+	s.sendall(struct.pack('<I',len(data)+4)+data) # send() may transmit only part of the buffer
+
+#
+# receives one chunk from the socket. recv() returning no data means the
+# camera closed the connection (CIPA DC-005 2.5) - report that as an error
+# instead of looping forever waiting for bytes that will never arrive
+#
+def recvChunk(s, maxBytes):
+	chunk = s.recv(maxBytes)
+	if not chunk:
+		raise socket.error(errno.ECONNRESET, "TCP/IP connection closed by camera")
+	return chunk
+
 #
 # Receives a payload over a MTP-TCP/IP socket
 #
@@ -116,31 +130,38 @@ def rxPayload(s, rxProgressFunc=None):
 	totalPayloadBytes = 0			# need to initialize here in case exception occurs before var is set
 	payloadBytesReceived = 0		# need to initialize here in case exception occurs before var is set
 	payloadId = None
-	data = b''
+	chunks = []						# received pieces, joined once at the end (repeated bytes += is quadratic)
 	g_PartialRxDataPayloadData = None
 	g_PartialRxDataPayloadData_SizeIndicated = 0
 	try:
-	
-		# transmitter first sends word indicating size of payload to follow
-		dataPreamble = s.recv(4)
-		if len(dataPreamble) < 4:
-			raise socket.error(errno.EBADF, "TCP/IP error receiving data - received insufficient payload preamble bytes (exp=4, got=0x{:x})".format(len(dataPreamble)))
+
+		# transmitter first sends word indicating size of payload to follow. TCP may deliver it in pieces
+		dataPreamble = b''
+		while len(dataPreamble) < 4:
+			dataPreamble += recvChunk(s, 4 - len(dataPreamble))
 		(totalBytesIncludingPreamble,) = struct.unpack('<I', dataPreamble)
 		totalPayloadBytes = totalBytesIncludingPreamble-4
+		if totalPayloadBytes < 4:
+			raise MtpProtocolException("Camera Protocol Error: invalid PTP-IP packet length 0x{:x}".format(totalBytesIncludingPreamble))
 
 		# receive the payload
-		while (payloadBytesReceived < totalPayloadBytes):		
-			data += s.recv(totalPayloadBytes - payloadBytesReceived)
-			if not payloadId and len(data) >= 4:
-				# if we have not received the payload ID and we have at least 4 bytes of data (first four bytes has payload ID)
-				(payloadId,) = struct.unpack('<I', data[0:4])
-			payloadBytesReceived = len(data)
+		header = b''
+		while (payloadBytesReceived < totalPayloadBytes):
+			chunk = recvChunk(s, totalPayloadBytes - payloadBytesReceived)
+			chunks.append(chunk)
+			payloadBytesReceived += len(chunk)
+			if payloadId is None:
+				header += chunk[:4 - len(header)]
+				if len(header) >= 4:
+					# first four bytes of the payload hold the payload ID
+					(payloadId,) = struct.unpack('<I', header[0:4])
 			if rxProgressFunc and payloadBytesReceived >= 8 and (payloadId == MTP_TCPIP_PAYLOAD_ID_DataPayload or payloadId == MTP_TCPIP_PAYLOAD_ID_DataPayloadLast):
 				rxProgressFunc(payloadBytesReceived - 8) # -8 to exclude header data from count
-				
+
 		# return the data received [not including 4-byte size preamble]
-		return data
+		return b''.join(chunks)
 	except socket.error as error:
+		data = b''.join(chunks)
 		if payloadBytesReceived and (payloadId == MTP_TCPIP_PAYLOAD_ID_DataPayload or payloadId == MTP_TCPIP_PAYLOAD_ID_DataPayloadLast) and\
 		  payloadBytesReceived >= 12:
 			#
@@ -230,7 +251,7 @@ def execMtpOp(s, mtpOp, cmdArgsPacked=b'', dataToSend=b'', rxTxProgressFunc=None
 		#
 		raise MtpProtocolException("Previous transfer interrupted - session in unknown state")
 
-	dataReceivedSoFar = b''
+	dataReceivedSoFar = bytearray() # grows in place; bytes += would copy the whole buffer on every payload
 	dataDirection = getMtpOpDataDirection(mtpOp)
 
 	#
@@ -246,7 +267,7 @@ def execMtpOp(s, mtpOp, cmdArgsPacked=b'', dataToSend=b'', rxTxProgressFunc=None
 	#
 	if dataDirection == MTP_DATA_DIRECTION_HOST_TO_CAMERA:
 		applog_d("execMtpOp: Sending MTP_TCPIP_PAYLOAD_ID_DataStart")
-		txdata(s, struct.pack('<IIII', MTP_TCPIP_PAYLOAD_ID_DataStart, txTransactionId, len(dataToSend), 0))
+		txdata(s, struct.pack('<IIQ', MTP_TCPIP_PAYLOAD_ID_DataStart, txTransactionId, len(dataToSend)))
 		applog_d("execMtpOp: Sending MTP_TCPIP_PAYLOAD_ID_DataPayloadLast:")
 		txdata(s, struct.pack('<II', MTP_TCPIP_PAYLOAD_ID_DataPayloadLast, txTransactionId) + dataToSend)
 			
@@ -274,7 +295,13 @@ def execMtpOp(s, mtpOp, cmdArgsPacked=b'', dataToSend=b'', rxTxProgressFunc=None
 				if rxTransactionId != txTransactionId:
 					raise MtpProtocolException("Camera Protocol Error: {:s}: Incorrect transaction ID for MTP_TCPIP_PAYLOAD_ID_DataStart (exp={:08x}, got={:08x})".\
 						format(getMtpOpDesc(mtpOp), txTransactionId, rxTransactionId))
-				(totalDataTransferSizeBytesExpectedAcrossAllPayloads,) = struct.unpack('<I', data[8:12])				
+				# Total Data Length is a UINT64 (CIPA DC-005 2.3.9); all-ones means the size is not known up front
+				if len(data) >= 16:
+					(totalDataTransferSizeBytesExpectedAcrossAllPayloads,) = struct.unpack('<Q', data[8:16])
+				else:
+					(totalDataTransferSizeBytesExpectedAcrossAllPayloads,) = struct.unpack('<I', data[8:12])
+				if totalDataTransferSizeBytesExpectedAcrossAllPayloads == MTP_TCPIP_DATA_LENGTH_UNKNOWN:
+					totalDataTransferSizeBytesExpectedAcrossAllPayloads = 0 # 0 = unknown, disables the underrun check				
 				
 				# debug dump of DataStart payload
 				if isDebugLog():
@@ -325,9 +352,9 @@ def execMtpOp(s, mtpOp, cmdArgsPacked=b'', dataToSend=b'', rxTxProgressFunc=None
 				#
 				if totalDataTransferSizeBytesExpectedAcrossAllPayloads and len(dataReceivedSoFar) < totalDataTransferSizeBytesExpectedAcrossAllPayloads:
 					raise MtpProtocolException("Camera Protocol Error: {:s}: Data underrun (exp=0x{:08x}, got=0x{:08x})".format(\
-						getMtpOpDesc(mtpOp), totalDataTransferSizeBytesExpectedAcrossAllPayloads, len(dataReceivedSoFar[8:])))											
+						getMtpOpDesc(mtpOp), totalDataTransferSizeBytesExpectedAcrossAllPayloads, len(dataReceivedSoFar)))											
 					
-				return MtpTcpCmdResult(mtpRespCode, mtpResponseParameter, dataReceivedSoFar)
+				return MtpTcpCmdResult(mtpRespCode, mtpResponseParameter, bytes(dataReceivedSoFar))
 				
 			else:
 				if isDebugLog():
@@ -356,7 +383,7 @@ def execMtpOp(s, mtpOp, cmdArgsPacked=b'', dataToSend=b'', rxTxProgressFunc=None
 				raise MtpOpExecFailureException(MTP_RESP_COMMUNICATION_ERROR, \
 					"{:s}: Socket error, partial data received - 0x{:x} of 0x{:x} bytes for specific payload, 0x{:x} of 0x{:x} of total data bytes expected. Error: {:s}".\
 						format(getMtpOpDesc(mtpOp), bytesReceivedLastPayload, lastPayloadExpectedSize, len(dataReceivedSoFar), totalDataTransferSizeBytesExpectedAcrossAllPayloads, str(e)),
-						dataReceivedSoFar, totalDataTransferSizeBytesExpectedAcrossAllPayloads)										
+						bytes(dataReceivedSoFar), totalDataTransferSizeBytesExpectedAcrossAllPayloads)										
 
 		except KeyboardInterrupt as e: # <ctrl-c> pressed			
 			gTransferInterruptedBySIGINT = True
@@ -374,7 +401,8 @@ def sendInitCmdReq(s, guidHighLowTuple, hostNameStr, hostVerInt):
 	(guidHigh, guidLow) = guidHighLowTuple
 	cmdtype=struct.pack('<I', MTP_TCPIP_REQ_INIT_CMD_REQ)
 	guid = struct.pack('<QQ', guidHigh, guidLow) 
-	hostNameUtf16ByteArray = strutil.stringToUtf16ByteArray(hostNameStr, True)
+	# friendly name is at most 40 UTF-16 characters including the terminating NULL (CIPA DC-005 2.3.1)
+	hostNameUtf16ByteArray = strutil.stringToUtf16ByteArray(hostNameStr[:MTP_TCPIP_MAX_FRIENDLY_NAME_CHARS-1], True)
 	try:
 		rxdata = txrxdata(s, cmdtype + guid + hostNameUtf16ByteArray + struct.pack('<I', hostVerInt))
 		if isDebugLog():

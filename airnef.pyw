@@ -281,7 +281,7 @@ def displayAirnefcmdOutput():
 		return
 	fileReport = None
 	try:
-		fileReport = open(mostRecentAirnefReportFilename, "r")
+		fileReport = open(mostRecentAirnefReportFilename, "r", encoding="utf-8", errors="replace")
 		reportContents = fileReport.read()
 	except IOError as e:
 		tkMessageBox.showerror("airnef Transfer Report", "Error reading airnefcmd report file \"{:s}\". {:s}".format(mostRecentAirnefReportFilename, str(e)))

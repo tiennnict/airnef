@@ -2076,42 +2076,27 @@ def loadDownloadHistory():
 				os.remove(downloadHistoryFilename)
 			else:
 				#
-				# load download history into a dictionary. the 'downloadHistoryDict =' composite below separates the
-				# 'key area' and 'additional info area' so that a dictionary entry is created for each line in the file.
-				# here is a break-down of that line to make it easier to understand:
-				#
-				#   downloadHistoryDict = { for line in f } - the entire block is in curly braces, indicating a dictionary is
-				#	being built. The expression starts by reading a line from the file into variable 'line'
-				#
-				# 	The left side of the expression then builds the key from the string loaded into 'line':
-				#
-				#		"{:s}".format(line[0:line.index("::::")])
-				#		The 0: specifies the string starts at character 0. The end of the string is determined by
-				#		line.index(":::"), which does a forward pattern match looking for the ":::" separator between the
-				#		'key area' and 'additional info' area. index() returns the starting character position of the ":::",
-				#		which serves as our ending subscript for the string of the 'key area'. The "{:s}" isn't really
-				#		necessary but makes clear that the expression results in a string.
-				#
-				#	The right side of the expression then builds the 'additonal info area' from the string loaded into 'line':
-				#
-				#		"{:s}".format(line[line.index("::::", 0)+4: line.rindex("\n")])
-				#		The line.index(":::", 0)+4 does the same pattern match performed on the key to find the same separator,
-				#		but this time adds 4 to the result to get the starting charactor position of the substring we're extracting.
-				#		The ending character position of the substring is determined via line.rindex("\n"), which finds the newline
-				#
-				#	Note that both index() and rindex() throw an exception if their substring searches fail - we catch this
-				#	exception and report the history file as corrupt when we do. We then ignore its contents and delete the file,
-				#	allowing a fresh file to be created when we reopen it for writing at the end of the routine
+				# load download history into a dictionary: the 'key area' (text before the '::::' separator)
+				# is the dictionary key and the 'additional info area' (text after it) is the value
 				#
 				try:
-					with open(downloadHistoryFilename) as f:
-						downloadHistoryDict_Temp = { "{:s}".format(line[0:line.index("::::")])  :  "{:s}".format(line[line.index("::::", 0)+4: line.rindex("\n")]) for line in f }
-					# succesfully loaded history
-					downloadHistoryDict = downloadHistoryDict_Temp
+					#
+					# lines that can't be parsed (for example a final line truncated by a crash, which has no
+					# trailing newline) are skipped individually rather than discarding the whole history
+					#
+					countCorruptLines = 0
+					with open(downloadHistoryFilename, encoding='utf-8', errors='replace') as f:
+						for line in f:
+							line = line.rstrip('\r\n')
+							posSeparator = line.find("::::")
+							if posSeparator <= 0:
+								if line:
+									countCorruptLines += 1
+								continue
+							downloadHistoryDict[line[:posSeparator]] = line[posSeparator+4:]
+					if countCorruptLines:
+						applog_w("Download history file \"{:s}\" has {:d} unreadable line(s), which were skipped".format(downloadHistoryFilename, countCorruptLines))
 					applog_v("Download history file \"{:s}\" loaded - {:d} entries".format(downloadHistoryFilename, len(downloadHistoryDict)))
-				except ValueError:
-					applog_e("Download history file \"{:s}\" appears corrupt and will be ignored and deleted".format(downloadHistoryFilename))
-					os.remove(downloadHistoryFilename)
 				except IOError as e:
 					applog_e("Error openg/reading download history file \"{:s}\". No history will be available this session.".format(downloadHistoryFilename))
 		else:
@@ -2123,7 +2108,7 @@ def loadDownloadHistory():
 	# re(open) the download history file for appending to support new history entries generated
 	# this session. return both the download history dictionary and the reopened history file
 	#
-	fileDownloadHistory = open(downloadHistoryFilename, "a")
+	fileDownloadHistory = open(downloadHistoryFilename, "a", encoding='utf-8')
 	return (downloadHistoryDict, fileDownloadHistory)
 	
 	
@@ -2173,7 +2158,7 @@ def writeDataToDownloadedFile(fileHandleIfAlreadyOpen, filenameWithPath, data, b
 # checks if the extension of an MTP filename is in a list of file extensions
 #
 def isMtpFilenameExtInList(mtpFilename, extList):
-	extension = extractMtpFileExtension(mtpFilename)
+	extension = extractMtpFileExtension(mtpFilename).upper() # extList is uppercased during cmd-line processing
 	if extension: # if filename has an extension
 		if extension not in extList:
 			return False
@@ -2739,7 +2724,7 @@ def downloadMtpFileObjects(firstMtpObjectToDownload = None):
 				# transfer is constrained by g.maxGetObjTransferSize
 				#
 				offsetIntoImage = bytesWritten
-				dataReceived = b''
+				dataReceived = bytearray()	# appended in place; bytes += would recopy up to maxGetObjBufferSize per piece
 				while offsetIntoImage < fileSizeBytes:
 					bytesToDownloadThisPiece = min(g.maxGetObjTransferSize, fileSizeBytes-offsetIntoImage)
 					if len(dataReceived)+bytesToDownloadThisPiece > g.maxGetObjBufferSize:
@@ -2757,8 +2742,16 @@ def downloadMtpFileObjects(firstMtpObjectToDownload = None):
 						downloadMtpFileObjects_DownloadProgressCallback(bytesReceivedAllCurrentPayloads, totalBytesExpectedAllCurrentPayloads, offsetIntoImage, fileSizeBytes))
 					mtpObject.partialDownloadObj().addDownloadTimeSecs(secondsElapsed(timeStart))
 												
-					dataReceived += mtpTcpCmdResultGetObj.dataReceived				
-					offsetIntoImage += bytesToDownloadThisPiece
+					#
+					# advance by the number of bytes the camera actually sent, not the number requested. ISO 15740
+					# 10.5.27 lets the responder return fewer bytes (response parameter 1 holds the actual count);
+					# advancing by the requested count would silently leave holes in the file
+					#
+					bytesReceivedThisPiece = len(mtpTcpCmdResultGetObj.dataReceived)
+					if bytesReceivedThisPiece == 0 or bytesReceivedThisPiece > bytesToDownloadThisPiece:
+						raise mtpwifi.MtpProtocolException("Camera Protocol Error: GetPartialObject returned 0x{:x} bytes for a request of 0x{:x} bytes at offset 0x{:x}".format(							bytesReceivedThisPiece, bytesToDownloadThisPiece, offsetIntoImage))
+					dataReceived += mtpTcpCmdResultGetObj.dataReceived
+					offsetIntoImage += bytesReceivedThisPiece
 
 					bIsFinalPiece = (offsetIntoImage == fileSizeBytes)
 					if bIsFinalPiece or len(dataReceived) >= g.maxGetObjBufferSize:
@@ -2766,7 +2759,7 @@ def downloadMtpFileObjects(firstMtpObjectToDownload = None):
 						foDownloadedFile = writeDataToDownloadedFile(foDownloadedFile, localFilenameWithPath, dataReceived, bIsFinalPiece, (bytesWritten != 0)) # close file if this is the last piece
 						mtpObject.partialDownloadObj().addBytesWritten(len(dataReceived))
 						bytesWritten += len(dataReceived)
-						dataReceived = b''						
+						dataReceived = bytearray()
 
 				#
 				# we've completed the download and writing of the file

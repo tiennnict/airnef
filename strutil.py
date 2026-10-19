@@ -61,12 +61,10 @@ def invertEndian(scalar):
 # converts a string into a utf-16 byte array
 #
 def stringToUtf16ByteArray(str, fNullTerminated=False):
-	packedUtf16 = bytearray()
-	strAsBytes = bytearray(str, 'utf-8')
-	for i in range(len(str)):
-		packedUtf16 += struct.pack('<BB', strAsBytes[i], 0x00)
+	# real UTF-16LE encoding; the old byte-by-byte packing only worked for ASCII strings
+	packedUtf16 = bytearray(str.encode('utf-16-le'))
 	if fNullTerminated:
-		packedUtf16 += struct.pack('<BB', 0x00, 0x00)
+		packedUtf16 += b'\x00\x00'
 	return packedUtf16
 
 #
@@ -75,7 +73,8 @@ def stringToUtf16ByteArray(str, fNullTerminated=False):
 # count of the array including an optional null
 #	
 def stringToCountedUtf16(str, fNullTerminated=False):
-	return struct.pack('<B', len(str) + (1 if fNullTerminated else 0)) + stringToUtf16ByteArray(str, fNullTerminated)
+	utf16 = stringToUtf16ByteArray(str, fNullTerminated)
+	return struct.pack('<B', len(utf16) // 2) + utf16 # count is in UTF-16 code units
 	
 
 #

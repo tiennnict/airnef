@@ -41,13 +41,13 @@ def applog_init(loggingFlags=APPLOGF_LEVEL_INFORMATIONAL | APPLOGF_LEVEL_ERROR, 
 	gLoggingFlags = loggingFlags
 	if sessionLogFilename:
 		try:
-				gFileSessionLog = open(sessionLogFilename, "w")
+				gFileSessionLog = open(sessionLogFilename, "w", encoding="utf-8")
 		except IOError as e:
 			print("Unable to open/create logfile \"{:s}\". {:s}".format(sessionLogFilename, str(e)))
 			return e.errno
 	if lifetimeLogFilename:
 		try:
-				gFileLifetimeLog = open(lifetimeLogFilename, "a")
+				gFileLifetimeLog = open(lifetimeLogFilename, "a", encoding="utf-8")
 		except IOError as e:
 			print("Unable to open/create logfile \"{:s}\". {:s}".format(lifetimeLogFilename, str(e)))
 			return e.errno
@@ -68,7 +68,7 @@ def applog_shutdown():
 		if gFileSessionLog:
 			gFileSessionLog.close()
 		if gFileLifetimeLog:
-			gFileSessionLog.close()
+			gFileLifetimeLog.close()
 	except IOError as e:
 		print("Unable to close logfile. {:s}".format(str(e)))
  
