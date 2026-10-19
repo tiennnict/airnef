@@ -13,10 +13,6 @@
 
 
 
-from __future__ import print_function
-from __future__ import division
-import six
-from six.moves import xrange
 import socket
 #from applog import *
 import struct
@@ -205,7 +201,7 @@ def discover(serviceNameList, ssdpServiceVerifyOkCallback=None, numAttempts=3, t
 	#
 	# loop for sending M-SEARCH messages and listening for unicasted responses/multicasted service advertisements
 	#
-	for nthAttempt in xrange(numAttempts):
+	for nthAttempt in range(numAttempts):
 	
 		try:
 		
@@ -232,7 +228,7 @@ def discover(serviceNameList, ssdpServiceVerifyOkCallback=None, numAttempts=3, t
 				# perform receive of queued data for all sockets with data available
 				for sock in socketsWithRxData:
 					ssdpMessageRaw = sock.recv(4096)
-					ssdpMessage = six.text_type(ssdpMessageRaw, 'utf-8')
+					ssdpMessage = str(ssdpMessageRaw, 'utf-8')
 					if ssdpMessage.startswith("M-SEARCH"):
 						# this is a search packet, either our own or someone else's - disregard
 						continue

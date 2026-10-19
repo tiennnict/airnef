@@ -11,10 +11,6 @@
 #############################################################################
 #
 
-from __future__ import print_function
-from __future__ import division
-import six
-from six.moves import xrange
 import struct
 from applog import *
 import sys
@@ -67,7 +63,7 @@ def invertEndian(scalar):
 def stringToUtf16ByteArray(str, fNullTerminated=False):
 	packedUtf16 = bytearray()
 	strAsBytes = bytearray(str, 'utf-8')
-	for i in xrange(len(str)):
+	for i in range(len(str)):
 		packedUtf16 += struct.pack('<BB', strAsBytes[i], 0x00)
 	if fNullTerminated:
 		packedUtf16 += struct.pack('<BB', 0x00, 0x00)
@@ -125,7 +121,7 @@ def hexdump(data, bytesPerField=1, includeASCII=1):
 	if (len(data) % bytesPerField) != 0:
 		applog_w("hexdump: size of data (0x{:04x}) is not a multiple of bytesPerField ({:d})".format(len(data), bytesPerField))
 		return strHexDump
-	for offset in xrange(0,len(data),bytesPerField):
+	for offset in range(0,len(data),bytesPerField):
 		offsetThisFieldInLine = (offset % 16)	# byte offset into data for this field of current line
 		endingOffsetThisFieldInLine = offsetThisFieldInLine + bytesPerField		
 		if (offsetThisFieldInLine == 0):
@@ -152,7 +148,7 @@ def hexdump(data, bytesPerField=1, includeASCII=1):
 				for asciiOffset in range(offsetThisFieldInLine+1):
 					(thisByte,) = struct.unpack('B', data[offset-offsetThisFieldInLine+asciiOffset:offset-offsetThisFieldInLine+asciiOffset+1])
 					if (thisByte >= 32 and thisByte <= 127):
-						strHexDump += six.unichr(thisByte)
+						strHexDump += chr(thisByte)
 					else:
 						strHexDump += "."
 					if (asciiOffset == 7):

@@ -22,29 +22,12 @@
 #############################################################################
 #
 
-from __future__ import print_function
-from __future__ import division
-#
-# six.py's remapping works as intended under Python 2.x but PyInstaller doesn't know how
-# handle its remapping yet, so when running on Python 2.x I  always use the standard
-# Python 2.x imports, just in case I'm performing a PyInstaller build, which I happen
-# to doing under Python 2.x.
-#
-import six
-if six.PY2:
-	from Tkinter import *
-	from ScrolledText import *
-	from tkFont import *
-	import ttk
-	import tkFileDialog
-	import tkMessageBox
-else:	
-	from six.moves.tkinter import *
-	from six.moves.tkinter_font import *
-	from six.moves.tkinter_scrolledtext import *
-	from six.moves import tkinter_ttk as ttk
-	from six.moves import tkinter_tkfiledialog as tkFileDialog
-	from six.moves import tkinter_messagebox as tkMessageBox
+from tkinter import *
+from tkinter.font import *
+from tkinter.scrolledtext import *
+from tkinter import ttk
+from tkinter import filedialog as tkFileDialog
+from tkinter import messagebox as tkMessageBox
 import time
 import subprocess
 import os
@@ -254,7 +237,11 @@ def launchAirnefcmd(argStr):
 			else: # linux
 				process = subprocess.Popen(['xterm', '+hold', '-e', os.path.join(g.appDir, 'airnefcmd')] + argList)
 		else:
-			process = subprocess.Popen(['python', os.path.join(g.appDir, 'airnefcmd.py')] + argList)
+			# same interpreter/venv as the GUI, but the console variant so airnefcmd gets a terminal window
+			pythonExe = sys.executable
+			if os.path.basename(pythonExe).lower() == 'pythonw.exe':
+				pythonExe = os.path.join(os.path.dirname(pythonExe), 'python.exe')
+			process = subprocess.Popen([pythonExe, os.path.join(g.appDir, 'airnefcmd.py')] + argList)
 
 		if process:
 			_errno = process.wait()
@@ -1185,14 +1172,9 @@ class Application(Frame):
 # verifies user is running version a modern-enough version of python for this app
 #					
 def verifyPythonVersion():
-	if sys.version_info.major == 2:
-		if sys.version_info.minor < 7:
-			print("Warning: You are running a Python 2.x version older than app was tested with.")
-			print("Version running is {:d}.{:d}.{:d}, app was tested on 2.7.x".format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
-	elif sys.version_info.major == 3:
-		if sys.version_info.minor < 4:
-			print("Warning: You are running a Python 3.x version older than app was tested with.")
-			print("Version running is {:d}.{:d}.{:d}, app was tested on 3.4.x".format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
+	if sys.version_info < (3, 12):
+		print("Warning: You are running a Python version older than app was tested with.")
+		print("Version running is {:d}.{:d}.{:d}, app requires 3.12 or newer".format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
 		
 #
 # sets app-level globals related to the platform we're running under and

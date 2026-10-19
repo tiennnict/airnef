@@ -1,0 +1,17 @@
+[project]
+name = "airnef"
+version = "1.1.0"
+description = "Wireless file transfer for PTP/MTP-equipped cameras (Nikon, Canon, Sony) over PTP/IP"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

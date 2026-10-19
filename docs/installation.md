@@ -37,4 +37,11 @@ Here are a few post-installation OS X tips that will help make Airnef more conve
 
 ## Windows/OS X/Linux running Airnef source with installed Python interpreter
 
-Instead of running the bundled Python environment that ships with the pre-built executables you can also run the source through your existing Python installation. Airnef supports both Python 2.7.x and 3.4.x environments. OS X and most Linux distributions install Python by default. For Linux the Tkinter GUI framework may not come preinstalled; you can install it via "sudo apt-get install python-tk". For Windows you'll need to download and install Python - I suggest enabling the option to add Python to your system path during the installation. For Linux and OSX you may need to set the airnef.pyw and airnefcmd.py as executable via 'chmod +x airnef.pyw' and 'chmod +x airnefcmd.py'
+Instead of running the bundled Python environment that ships with the pre-built executables you can also run the source through your existing Python installation. This fork requires **Python 3.12 or newer** (Python 2 is no longer supported) and is managed with [uv](https://docs.astral.sh/uv/). For Linux the Tkinter GUI framework may not come preinstalled; you can install it via "sudo apt-get install python3-tk".
+
+```bash
+uv sync                          # creates .venv from pyproject.toml / uv.lock
+uv run airnef.pyw                # GUI
+uv run airnefcmd.py --help       # command-line app
+uv run pytest                    # test suite (uses a simulated PTP/IP camera)
+```

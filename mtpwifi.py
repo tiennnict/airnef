@@ -19,9 +19,6 @@
 #############################################################################
 #
 
-from __future__ import print_function
-from __future__ import division
-import six
 import socket
 import sys
 import struct
@@ -119,7 +116,7 @@ def rxPayload(s, rxProgressFunc=None):
 	totalPayloadBytes = 0			# need to initialize here in case exception occurs before var is set
 	payloadBytesReceived = 0		# need to initialize here in case exception occurs before var is set
 	payloadId = None
-	data = six.binary_type()
+	data = b''
 	g_PartialRxDataPayloadData = None
 	g_PartialRxDataPayloadData_SizeIndicated = 0
 	try:
@@ -217,7 +214,7 @@ def execMtpOp_rxPayloadProgressFunc(totalBytesReceivedThisPayload, rxTxProgressF
 		rxTxProgressFunc(countBytesReceivedAcrossAllPayloads + totalBytesReceivedThisPayload,
 			totalDataTransferSizeBytesExpectedAcrossAllPayloads)
 
-def execMtpOp(s, mtpOp, cmdArgsPacked=six.binary_type(), dataToSend=six.binary_type(), rxTxProgressFunc=None):
+def execMtpOp(s, mtpOp, cmdArgsPacked=b'', dataToSend=b'', rxTxProgressFunc=None):
 
 	mtpDataDirToCmdReqDataDirectionCode={
 		MTP_DATA_DIRECTION_NONE : MTP_TCPIP_CmdReq_DataDir_CameraToHost_or_None,
@@ -233,7 +230,7 @@ def execMtpOp(s, mtpOp, cmdArgsPacked=six.binary_type(), dataToSend=six.binary_t
 		#
 		raise MtpProtocolException("Previous transfer interrupted - session in unknown state")
 
-	dataReceivedSoFar = six.binary_type()
+	dataReceivedSoFar = b''
 	dataDirection = getMtpOpDataDirection(mtpOp)
 
 	#

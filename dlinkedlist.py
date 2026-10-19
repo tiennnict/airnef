@@ -11,8 +11,6 @@
 #############################################################################
 #
 
-from __future__ import print_function
-from __future__ import division
 
 class LinkedList():
 	def __init__(self):

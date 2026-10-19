@@ -11,9 +11,6 @@
 #############################################################################
 #
 
-from __future__ import print_function
-from __future__ import division
-import six
 import os
 import re
 import time
@@ -271,7 +268,7 @@ def createTestRenameDict():
 	renameDict['downloadDateEpoch'] = time.time()
 	renameDict['filename'] = "DSC_0014.sthumb.jpg"
 	renameDict['capturefilename'] = "DSC_0014.NEF"
-	renameDict['path'] = "c:\pics"
+	renameDict['path'] = "c:\\pics"
 	renameDict['camerafolder'] = "100D7200"
 	renameDict['slotnumber'] = 1
 	renameDict['captureDateEpoch'] = time.time()
