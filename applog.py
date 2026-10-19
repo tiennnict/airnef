@@ -116,9 +116,14 @@ def isVerboseLog():
 #
 # console writing function wrappers
 #	
+# status-line effects (\r, \b) only make sense on a console; when the GUI reads our output
+# through a pipe they are switched off (see guilink.py)
+gConsoleStatusEnabled = True
 def consoleWriteLine(msg):
-	sys.stdout.write(msg)
-	sys.stdout.flush()
+	if gConsoleStatusEnabled:
+		sys.stdout.write(msg)
+		sys.stdout.flush()
 def consoleClearLine():
-	sys.stdout.write("\r" + " "*78 + "\r")
-	sys.stdout.flush()
+	if gConsoleStatusEnabled:
+		sys.stdout.write("\r" + " "*78 + "\r")
+		sys.stdout.flush()

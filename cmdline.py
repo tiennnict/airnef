@@ -163,6 +163,7 @@ def processCmdLine():
 	parser.add_argument('--downloadexec_extlist', help='Type of files(s) by extension on wich to perform --downloadexec on. Default is all file types', default=None, nargs='+', metavar='extension', required=False)
 	parser.add_argument('--downloadexec_options', help='Options for launcing application. For example \'wait\' waits for launched app to exit before proceeding to next download. See online help for more options', default=[], nargs='+', metavar='option', required=False)	
 	parser.add_argument('--realtimepollsecs', type=int, help='How often camera is polled for new images in realtime mode, in seconds. Default is every %(default)s seconds', default=3, metavar="seconds", required=False)
+	parser.add_argument('--guimode', help=argparse.SUPPRESS, type=str.lower, choices=['no', 'yes'], default='no', required=False) # used by the GUI: structured progress on stdout, commands on stdin (see guilink.py)
 	parser.add_argument('--logginglevel', type=str.lower, choices=['normal', 'verbose', 'debug' ], help='Sets how much information is saved to the result log. Default is "%(default)s"', default='normal', required=False)
 	# hidden args (because they wont be used often and will complicate users learning the command line - they are documented online)
 	parser.add_argument('--port', help=argparse.SUPPRESS, type=int, default=mtpwifi.MTP_TCPIP_PORT_DEFAULT, required=False)

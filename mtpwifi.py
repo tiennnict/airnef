@@ -24,6 +24,7 @@ import sys
 import struct
 import time
 import threading
+import select
 import strutil
 import errno
 from collections import deque
@@ -159,7 +160,30 @@ def txdata(s, data):
 # camera closed the connection (CIPA DC-005 2.5) - report that as an error
 # instead of looping forever waiting for bytes that will never arrive
 #
+#
+# cooperative cancel (used by the GUI). a cancel requested from another thread is acted on here, just
+# before bytes are read from the socket, which is a safe point: nothing received can be lost, so the
+# cancel handshake in cancelTransaction() always finds the packet stream in a known position. an
+# asynchronous KeyboardInterrupt could instead land right after recv() returned and drop its data
+#
+gCancelRequested = threading.Event()
+gInTransaction = False		# True while execMtpOp() is running a transaction
+gCancelling = False			# True while cancelTransaction() runs, so it isn't itself cancelled
+
+def requestCancel():
+	gCancelRequested.set()
+
 def recvChunk(s, maxBytes):
+	isRealSocket = isinstance(s, socket.socket)	# test doubles are read directly
+	timeoutSecs = s.gettimeout() if isRealSocket else None
+	deadline = time.time() + timeoutSecs if timeoutSecs else None
+	while True:
+		if gCancelRequested.is_set() and not gCancelling:
+			raise KeyboardInterrupt()
+		if not isRealSocket or select.select([s], [], [], 0.25)[0]:	# short slices so a cancel is noticed promptly
+			break
+		if deadline is not None and time.time() >= deadline:
+			raise socket.timeout("timed out")
 	chunk = s.recv(maxBytes)
 	if not chunk:
 		raise socket.error(errno.ECONNRESET, "TCP/IP connection closed by camera")
@@ -287,6 +311,14 @@ def execMtpOp_rxPayloadProgressFunc(totalBytesReceivedThisPayload, rxTxProgressF
 			totalDataTransferSizeBytesExpectedAcrossAllPayloads)
 
 def execMtpOp(s, mtpOp, cmdArgsPacked=b'', dataToSend=b'', rxTxProgressFunc=None):
+	global gInTransaction
+	gInTransaction = True
+	try:
+		return _execMtpOp(s, mtpOp, cmdArgsPacked, dataToSend, rxTxProgressFunc)
+	finally:
+		gInTransaction = False
+
+def _execMtpOp(s, mtpOp, cmdArgsPacked=b'', dataToSend=b'', rxTxProgressFunc=None):
 
 	mtpDataDirToCmdReqDataDirectionCode={
 		MTP_DATA_DIRECTION_NONE : MTP_TCPIP_CmdReq_DataDir_CameraToHost_or_None,
@@ -457,6 +489,15 @@ def execMtpOp(s, mtpOp, cmdArgsPacked=b'', dataToSend=b'', rxTxProgressFunc=None
 # read and discarded until the camera's Operation Response arrives. returns the response code
 #
 def cancelTransaction(s, txTransactionId, timeoutSecs=10):
+	global g_RxInPacket, gCancelling
+	gCancelling = True
+	try:
+		return _cancelTransaction(s, txTransactionId, timeoutSecs)
+	finally:
+		gCancelling = False
+		gCancelRequested.clear()
+
+def _cancelTransaction(s, txTransactionId, timeoutSecs):
 	global g_RxInPacket
 	cancelPacket = struct.pack('<II', MTP_TCPIP_CANCEL, txTransactionId)
 	txdata(s, cancelPacket)

@@ -33,6 +33,7 @@ import socket
 import mtpwifi
 import strutil
 import ssdp
+import guilink
 from applog import *
 from mtpdef import *
 from appstate import *
@@ -352,6 +353,8 @@ def main():
 	# process command line arguments
 	#
 	processCmdLine()
+	if g.args['guimode'] == 'yes':
+		guilink.enable()
 		
 	#
 	# do app's main work

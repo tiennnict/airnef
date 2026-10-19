@@ -21,6 +21,7 @@ import subprocess
 import mtpwifi
 import strutil
 import rename
+import guilink
 from collections import namedtuple
 from applog import *
 from mtpdef import *
@@ -86,6 +87,8 @@ def generateUniqueFilename(origFilenameWithPath):
 # 		
 def promptWithSingleKeyResponse(promptStr, validKeyListStr):
 	while True:
+		if guilink.isEnabled():
+			return guilink.prompt(promptStr, validKeyListStr)
 		key = input(promptStr).upper()
 		if key and validKeyListStr.upper().find(key.upper()) != -1:
 			return key			
@@ -409,6 +412,7 @@ def downloadMtpFileObjects_DownloadProgressCallback(bytesReceivedAllCurrentPaylo
 		# only update if it's changed. it's ok if we miss a single % update when switching files
 		downloadMtpFileObjects_DownloadProgressCallback.lastPctPrinted = pctDone
 		consoleWriteLine("\b\b\b{:2d}%".format(pctDone))
+		guilink.emitProgress(bytesReceived, totalObjSizeBytes)
 
 
 #
@@ -670,6 +674,8 @@ def downloadMtpFileObjects(firstMtpObjectToDownload = None):
 		applog_d(">> {:s}".format(getMtpOpDesc(mtpOpGet)))
 		
 		consoleWriteLine("Downloading \"{:s}\":  0%".format(localFilenameWithoutPath))
+		guilink.setCurrentFile(localFilenameWithoutPath)
+		guilink.emitProgress(0, 0)
 
 		#
 		# do the get/download
@@ -847,6 +853,7 @@ def downloadMtpFileObjects(firstMtpObjectToDownload = None):
 				thisFileDownloadRateMbSec = 0
 			applog_i("{:s} [size = {:,}] in {:.2f} seconds ({:.2f} MB/s)".format(localFilenameWithPath,\
 				fileSizeBytes, fileDownloadTimeSecs, thisFileDownloadRateMbSec))
+			guilink.emitDone(localFilenameWithoutPath, fileSizeBytes, fileDownloadTimeSecs)
 									
 			#
 			# update running stats and mark the file as downloaded
