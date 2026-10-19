@@ -4,7 +4,7 @@
 
 ## Nikon Cameras
 
-By default your Nikon camera has an IP address of 192.168.1.1 and runs without encryption. You can modify both the IP address and wireless security via a one-time procedure using Nikon's Wireless Mobile Utility app (iOS and Android). Nikon has published instructions on modifying the security settings here. Modifying the IP address of your camera is useful if you run a typical network configuration that has the router at 192.168.1.1, which conflicts with the camera and makes it impossible to use a wired connection to your router/Internet at the same time you'd like to download from the camera. Here are instructions for the one-time procedure to change your cameras IP address:
+By default your Nikon camera has an IP address of 192.168.1.1 and runs without encryption. You can modify both the IP address and wireless security via a one-time procedure using Nikon's Wireless Mobile Utility app (iOS and Android). Modifying the IP address of your camera is useful if you run a typical network configuration that has the router at 192.168.1.1, which conflicts with the camera and makes it impossible to use a wired connection to your router/Internet at the same time you'd like to download from the camera. Here are instructions for the one-time procedure to change your cameras IP address:
 
 1. Install the Nikon Wireless Mobile Utility (WMU) app on your phone (iOS and Android).
 1. Turn your camera's WiFi on and then have your phone/tablet connect to that Network (Nikon's network usually starts with "Nikon_", such as "Nikon_WU2_52A670FB7F45"
@@ -24,16 +24,16 @@ One-Time Setup:
 1. Follow the SnapBridge app instructions to perform the one-time bluetooth paring between your smartphone/tablet and the camera. This only needs to be done once for a given smart device/camera pair.
 Activating the camera's WiFi using the iOS SnapBridge App:
 
-1. Click the 'Camera' icon on the bottom row of icons within the SnapBridge app, then click "Download selected pictures" (screenshot)
-1. You will be prompted to confirm that you wish to temporarily switch SnapBridge from bluetooth to WiFi (screenshot) - click "Yes" to confirm.
-1. At this point the SnapBridge app will connect to the camera's bluetooth (if it isn't already connected) and will then activate/enable the camera's WiFi. This may take a while because the bluetooth connection process is sometimes very slow - see the 'Additional Details' section below for a method to accelerate this process. After activating the camera's WiFi the SnapBridge app will then prompt you to go into your iPhone/iPad's settings to connect to the camera's WiFi (screenshot) - do not do this. Instead, click "Close".
+1. Click the 'Camera' icon on the bottom row of icons within the SnapBridge app, then click "Download selected pictures"
+1. You will be prompted to confirm that you wish to temporarily switch SnapBridge from bluetooth to WiFi - click "Yes" to confirm.
+1. At this point the SnapBridge app will connect to the camera's bluetooth (if it isn't already connected) and will then activate/enable the camera's WiFi. This may take a while because the bluetooth connection process is sometimes very slow - see the 'Additional Details' section below for a method to accelerate this process. After activating the camera's WiFi the SnapBridge app will then prompt you to go into your iPhone/iPad's settings to connect to the camera's WiFi - do not do this. Instead, click "Close".
 1. The camera's WiFi is now enabled. Join the camera's network from your computer - the network will be your cameras model number + serial number. Launch Airnef and set the IP address of Camera IP Address to 192.168.1.1. Read the 'Additional Details' section below.
 Activating the camera's WiFi using the Android SnapBridge App:
 
 1. Temporarily disable the WiFi on your smartphone/tablet. This is necessary to prevent the SnapBridge app from automatically connecting to the camera's WiFi network after you enable the camera' WiFi within the SnapBridge app.
-1. Click the 'Camera' icon on the top row of icons within the SnapBridge app, then click "Download selected pictures" (screenshot).
-1. You will be prompted to confirm that you wish to temporarily switch SnapBridge from bluetooth to WiFi (screenshot) - click "OK" to confirm.
-1. At this point the SnapBridge app will connect to the camera's bluetooth (if it isn't already connected) and will then activate/enable the camera's WiFi. This may take a while because the bluetooth connection process is sometimes very slow - see the 'Additional Details' section below for a method to accelerate this process. After activating the camera's WiFi the SnapBridge app will then attempt to connect to the camera's WiFi network but will fail because we disabled your smart device's WiFi in step #1. The SnapBridge app will report this failure in a pop-up (screenshot). Even though the SnapBridge app reported this error the camera's WiFi is now enabled.
+1. Click the 'Camera' icon on the top row of icons within the SnapBridge app, then click "Download selected pictures".
+1. You will be prompted to confirm that you wish to temporarily switch SnapBridge from bluetooth to WiFi - click "OK" to confirm.
+1. At this point the SnapBridge app will connect to the camera's bluetooth (if it isn't already connected) and will then activate/enable the camera's WiFi. This may take a while because the bluetooth connection process is sometimes very slow - see the 'Additional Details' section below for a method to accelerate this process. After activating the camera's WiFi the SnapBridge app will then attempt to connect to the camera's WiFi network but will fail because we disabled your smart device's WiFi in step #1. The SnapBridge app will report this failure in a pop-up. Even though the SnapBridge app reported this error the camera's WiFi is now enabled.
 1. The camera's WiFi is now enabled. Join the camera's network from your computer - the network will be your cameras model number + serial number. Launch Airnef and set the IP address of Camera IP Address to 192.168.1.1. Read the 'Additional Details' section below.
 Additional Details:
 
@@ -45,7 +45,7 @@ Additional Details:
 
 ## Sony Cameras
 
-To enable wireless transfer-to-desktop functionality Sony cameras require a one-time configuration setup that must be performed with the camera attached to the computer via USB. You'll see this message if you haven't done the configuration. For Windows the setup is performed using Sony's PlayMemories Home application. For OSX the setup is done using Sony's Wireless Auto Import application. Sony doesn't provide a Linux application but if you can get access to a Windows or OSX machine you can perform the one-time setup on that system and then use Airnef under Linux thereafter, even on a system other than the one in which you authenticated via the one-time setup using Sony's software.
+To enable wireless transfer-to-desktop functionality Sony cameras require a one-time configuration setup that must be performed with the camera attached to the computer via USB. For Windows the setup is performed using Sony's PlayMemories Home application. For OSX the setup is done using Sony's Wireless Auto Import application. Sony doesn't provide a Linux application but if you can get access to a Windows or OSX machine you can perform the one-time setup on that system and then use Airnef under Linux thereafter, even on a system other than the one in which you authenticated via the one-time setup using Sony's software.
 
 Here are the one-time setup instructions:
 
@@ -72,7 +72,7 @@ Here are the one-time setup instructions:
 
 ### Disabling Auto-Mounting of Sony camera on Windows
 
-1. To disable auto-mounting you must allow your system to mount the camera once so that it shows up in the Device Manager of the Windows Control Panel, where it can then be disabled for all future mount attempts. For the camera to show up on your system its wireless settings must be configured, which is also required to use Airnef. See the instructions below.
+1. To disable auto-mounting you must allow your system to mount the camera once so that it shows up in the Device Manager of the Windows Control Panel, where it can then be disabled for all future mount attempts. For the camera to show up on your system its wireless settings must be configured, which is also required to use Airnef. See [Sony Wireless Setup](#sony-wireless-setup) below.
 1. With the camera disconnected from USB, go to your camera's wireless menu and click Send to Computer. After the camera establishes its connection to the router you should see a screen indicating that it's attempting to connect to your computer, listing the name of the machine you configured in PlayMemories Home and the SSID of your wireless router.
 1. Wait for your computer to discover the presence of your camera over WiFi. This might take up to a minute. When discovered your computer will either display an auto-play dialog asking what action to take with the camera, or failing that, an icon representing the camera within your windows filesystem. If neither of these happens and your computer fails to discover the camera then your done with this process (ie, for whatever reason the auto-mounting isn't working and since the goal is to disable auto-mounting there's nothing more for you to do).
 1. Run the Windows Control Panel's Device Manager. For example in Windows 7 you can do this by clicking the Start Menu and typing "Device Manager" and clicking the search result associated with Device Manager.

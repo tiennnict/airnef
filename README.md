@@ -84,10 +84,6 @@ serves a small in-memory card that `airnefcmd.py` downloads from.
 - A fully self-contained GUI app with visual selection of images to download
 - Potential support for DslrDashboardServer
 
-## Developer Notes
-
-For anyone interested in the ongoing progress of Airnef development, I've created a developer notes page.
-
 ## Credits
 
 - Special thanks to Joe FitzPatrick for his work on reverse-engineering Nikon's WiFi interface

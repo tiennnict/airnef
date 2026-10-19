@@ -12,11 +12,11 @@ The mostly likely cause is low battery charge - for example Nikon bodies wont le
 
 ### I have a wired connection to my router and whenever I try to connect wirelessly to my camera Airnef reports "A device at 192.1681.1.1 responded but the connection was refused. This is likely because you are connected to a normal WiFi network instead"
 
-The default IP address of most routers is 192.168.1.1, which unfortunately is also the default IP address of the wireless network created by Nikon cameras. Even though you have separate a wired connection to your router there can only be one device with a given IP address and so when you attempt to connect to your camera at 192.168.1.1 you'll be connecting to your router instead. Fortunately changing the IP address of your Nikon camera is easy - see the instructions here.
+The default IP address of most routers is 192.168.1.1, which unfortunately is also the default IP address of the wireless network created by Nikon cameras. Even though you have separate a wired connection to your router there can only be one device with a given IP address and so when you attempt to connect to your camera at 192.168.1.1 you'll be connecting to your router instead. Fortunately changing the IP address of your Nikon camera is easy - see [Nikon Cameras](camera-setup.md#nikon-cameras) in the camera setup guide.
 
 ### My wireless download performance is only half the 2 - 2.5 MB/s that Airnef is quoted to achieve. I'm getting around 1 MB/s for my downloads.
 
-If your camera uses the wireless infrastructure mode then you'll need to use a wired connection to your router to achieve 2 MB/s. See details here.
+If your camera uses the wireless infrastructure mode then you'll need to use a wired connection to your router to achieve 2 MB/s. See [Optimizing Wireless Download Performance](camera-setup.md#optimizing-wireless-download-performance).
 
 ### Whenever airnef runs it changes my camera's clock to the wrong time.
 

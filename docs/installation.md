@@ -4,7 +4,7 @@
 
 ## Windows Installer
 
-1. Download the Windows installer and launch it
+1. Launch the Windows installer from the original Airnef release
 1. The application is unsigned so you'll receive a warning from Windows about it coming from an "unknown publisher"
 1. Once the installer is running you'll be prompted to agree to the GPL v3 license.
 1. You'll then be prompted for the installation directory, which defaults to C:\Program Files\airnef (32-bit Windows) or C:\Program Files (x86)\airnef (64-bit Windows)
@@ -19,7 +19,7 @@ Here are a few post-installation Windows tips that will help make Airnef more co
 
 ## OS X application (.dmg)
 
-1. Download the OS X .dmg and double-click it
+1. Double-click the OS X .dmg from the original Airnef release
 1. The virtual disk image will be mounted and it should automatically open up to reveal the Airnef application and a shortcut to your Applications folder.
 1. Drag and drop the Airnef application into the Applications shortcut icon.
 1. The application is unsigned so you'll likely need to perform a one-time security override to permanently add the application to OS X's safe application list. You can do this by right-clicking (Control-Mouse Click) on the Airnef icon in your Applications folder and selecting open.
@@ -27,7 +27,7 @@ Here are a few post-installation Windows tips that will help make Airnef more co
 1. Airnef requires xterm but newer versions of OSX don't install it by default. You can install it from XQuartz, which is an Apple Project.
 Here are a few post-installation OS X tips that will help make Airnef more convenient to use:
 
-1. When you tell the Airnef GUI to start downloading images it launches the airnefcmd application in a terminal window to perform the actual download. When airnefcmd has completed its downloads, OS X will by default leave the terminal window open, requiring you to manually close it. This can be annoying because you'll have to repeat this action after every download completion. Fortunately the OS X terminal app has a configurable setting which allows the terminal window to automatically close after a console app has completed. In the Terminal application, select 'Preferences' in the menu. In the dialog that opens, click 'Profiles' in the top left and then the 'Shell' tab. Set "When the shell exits" to either "Close if the shell exited cleanly" or "Close". See this sample screen image of the dialog to help you locate this option.
+1. When you tell the Airnef GUI to start downloading images it launches the airnefcmd application in a terminal window to perform the actual download. When airnefcmd has completed its downloads, OS X will by default leave the terminal window open, requiring you to manually close it. This can be annoying because you'll have to repeat this action after every download completion. Fortunately the OS X terminal app has a configurable setting which allows the terminal window to automatically close after a console app has completed. In the Terminal application, select 'Preferences' in the menu. In the dialog that opens, click 'Profiles' in the top left and then the 'Shell' tab. Set "When the shell exits" to either "Close if the shell exited cleanly" or "Close".
 1. Whenever you'd like to cancel the current Airnef download/operation, press <ctrl-c> within the terminal window that airnefcmd is running. **DO NOT click the "X" in that terminal window's title bar** - doing this will cause airnefcmd to be terminated without properly cleaning up the resources and files it was processing.
 
 ## Linux Binary

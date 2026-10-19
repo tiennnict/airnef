@@ -82,7 +82,7 @@ Here is the full list of support specifiers:
 | @dlnum_lifetime@ | The nth file downloaded for this camera model+serial for lifetime of Airnef | 5345 |
 | **Meta Specifiers** |  |  |
 | @replace~xxx~yyy@ | Replace every occurence of 'xxx' with 'yyy' for output string generated up to this point | @replace~NEF~Raws@ converts "NEF" to "Raws" |
-| @replacere~xxx~yyy@ | Regular Express version of @replace. This uses the Python re.sub() function. Python regex reference here. |  |
+| @replacere~xxx~yyy@ | Regular Express version of @replace. This uses the Python re.sub() function. |  |
 | @@ | Literal '@' | @ |
 
 When both --dirnamespec and --filenamespec are specified, --dirnamespec is processed first. The output of --dirnamespec is then available as the updated @path@ for --filename spec. For example, if you use "--outputdir c:\pics --dirnamespec @cameramake@ --filenamespec whatever" with a Nikon camera, when --dirnamespec is processed the @path@ specifier translates to c:\pics. When --filenamespec is processed the @path@ specifier translates to c:\pics\Nikon
