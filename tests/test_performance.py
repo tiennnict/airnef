@@ -107,7 +107,7 @@ def test_json_object_cache_is_reused_on_next_session(tmp_path):
         assert len(cache_files) == 1
         cam.ops_log.clear()
         result = run_airnefcmd(cam, tmp_path, '--action', 'listfiles')
-        assert result.returncode == 0 and '5 from object cache' in result.stdout
+        assert result.returncode == 0 and '5 from object cache' in result.stdout, result.stdout + result.stderr
         # only the two folders are re-read to validate the cache
         assert len([op for op, _ in cam.ops_log if op == GET_OBJECT_INFO]) == 2
     finally:
@@ -121,6 +121,6 @@ def test_corrupt_json_cache_is_discarded(tmp_path):
         cache_file = next((tmp_path / 'appdata').glob('*-objinfocache.json'))
         cache_file.write_text('{not json', encoding='utf-8')
         result = run_airnefcmd(cam, tmp_path, '--action', 'listfiles')
-        assert result.returncode == 0 and '0 from object cache' in result.stdout
+        assert result.returncode == 0 and '0 from object cache' in result.stdout, result.stdout + result.stderr
     finally:
         cam.close()
