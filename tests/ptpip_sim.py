@@ -107,6 +107,8 @@ class SimCamera:
                          0x1009, 0x100A, 0x1015, 0x1016, 0x101B, 0x90C7, 0x9408)
     camera_datetime: str = '20240102T030405'
     reject_initiator: bool = False       # answer Init Command Request with Init Fail
+    latency_secs: float = 0.0            # delay before every operation response (WiFi round-trip time)
+    bytes_per_sec: float = 0.0           # >0: throttle data phases to this rate (WiFi throughput)
     size_unknown: bool = False           # ObjectInfo reports 0xFFFFFFFF sizes, as for objects of 4GB or more
     probe_initiator_on_open: bool = False  # send a Probe Request on the event channel when the session opens
 
@@ -227,6 +229,8 @@ class SimCamera:
                     if ptype == END_DATA:
                         break
             self.ops_log.append((opcode, params))
+            if self.latency_secs:
+                time.sleep(self.latency_secs)
             code, data_in, resp_params = self._dispatch(opcode, params, data_out)
             if data_in is not None:
                 self._send_data(conn, txid, data_in)
@@ -235,8 +239,13 @@ class SimCamera:
             if opcode == 0x1003:
                 return
 
+    def _throttle(self, nbytes):
+        if self.bytes_per_sec:
+            time.sleep(nbytes / self.bytes_per_sec)
+
     def _send_data(self, conn, txid, data):
         conn.sendall(packet(START_DATA, struct.pack('<IQ', txid, len(data))))
+        self._throttle(len(data))
         size = self.data_packet_size
         if size and len(data) > size:
             for offset in range(0, len(data) - size, size):
