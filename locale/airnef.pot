@@ -1,0 +1,402 @@
+# airnef user interface translations (template)
+# This file is distributed under the same license as airnef (GPL v3).
+msgid ""
+msgstr ""
+"Project-Id-Version: airnef\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: airnef.pyw:55
+msgid "normal"
+msgstr ""
+
+#: airnef.pyw:55
+msgid "verbose"
+msgstr ""
+
+#: airnef.pyw:55
+msgid "debug"
+msgstr ""
+
+#: airnef.pyw:57
+msgid "none - exit after normal download"
+msgstr ""
+
+#: airnef.pyw:58
+msgid "normal download then realtime"
+msgstr ""
+
+#: airnef.pyw:59
+msgid "only realtime download"
+msgstr ""
+
+#: airnef.pyw:61
+msgid "generate unique filename"
+msgstr ""
+
+#: airnef.pyw:62
+msgid "overwrite file"
+msgstr ""
+
+#: airnef.pyw:63
+msgid "skip file"
+msgstr ""
+
+#: airnef.pyw:64
+msgid "prompt for each file"
+msgstr ""
+
+#: airnef.pyw:65
+msgid "exit"
+msgstr ""
+
+#: airnef.pyw:67
+msgid "full-sized images/movies"
+msgstr ""
+
+#: airnef.pyw:68
+msgid "small thumbnails"
+msgstr ""
+
+#: airnef.pyw:69
+msgid "large thumbnails"
+msgstr ""
+
+#: airnef.pyw:71
+msgid "first card found"
+msgstr ""
+
+#: airnef.pyw:72
+msgid "card in slot #1"
+msgstr ""
+
+#: airnef.pyw:73
+msgid "card in slot #2"
+msgstr ""
+
+#: airnef.pyw:74
+msgid "both cards (not recommended)"
+msgstr ""
+
+#: airnef.pyw:76
+msgid "oldest images/movies first"
+msgstr ""
+
+#: airnef.pyw:77
+msgid "newest images/movies first"
+msgstr ""
+
+#: airnef.pyw:79
+msgid "All Dates"
+msgstr ""
+
+#: airnef.pyw:80
+msgid "today"
+msgstr ""
+
+#: airnef.pyw:81
+msgid "yesterday"
+msgstr ""
+
+#: airnef.pyw:82
+msgid "past week"
+msgstr ""
+
+#: airnef.pyw:83
+msgid "past month"
+msgstr ""
+
+#: airnef.pyw:84
+msgid "past year"
+msgstr ""
+
+#: airnef.pyw:85
+msgid "custom date range"
+msgstr ""
+
+#: airnef.pyw:192
+msgid "airnefcmd launch error"
+msgstr ""
+
+#: airnef.pyw:192
+msgid "Launch of airnefcmd was unsuccessful"
+msgstr ""
+
+#: airnef.pyw:272
+msgid "No airnefcmd operations have been performed yet."
+msgstr ""
+
+#: airnef.pyw:278
+msgid "Error reading airnefcmd report file \"{:s}\". {:s}"
+msgstr ""
+
+#: airnef.pyw:289
+msgid "It appears airnefcmd was uncleanly terminated. In the future please press <ctrl-c> if you'd like to terminate airnefcmd instead of closing its terminal window. This will allow airnefcmd to perform any necessary cleanup prior to exiting."
+msgstr ""
+
+#: airnef.pyw:300
+msgid "airnef performs its job by launching airnefcmd in a terminal window. By default OSX keeps that terminal window open even after airnefcmd has completed, requiring you to close it manually. You can configure OSX to close the terminal window automatically. Go to the Terminal application and select 'Preferences' in the Terminal menu. Click 'Profiles' at the top and then the \"Shell\" tab in the upper part of the window. Set \"When the shell exits\" option to 'Close if the shell exited cleanly' or 'Close the window'"
+msgstr ""
+
+#: airnef.pyw:312 airnef.pyw:272 airnef.pyw:278
+msgid "Transfer Report"
+msgstr ""
+
+#: airnef.pyw:327
+msgid "Close"
+msgstr ""
+
+#: airnef.pyw:329
+msgid "Copy to Clipboard"
+msgstr ""
+
+#: airnef.pyw:508
+msgid "airnef - Wireless download of images and movies from your camera"
+msgstr ""
+
+#: airnef.pyw:543 airnef.pyw:545
+msgid "Loading App Config"
+msgstr ""
+
+#: airnef.pyw:543
+msgid "Could not read app config data. {:s}. Defaults will be used."
+msgstr ""
+
+#: airnef.pyw:545
+msgid "Could not decode app config data. {:s}. Defaults will be used."
+msgstr ""
+
+#: airnef.pyw:557
+msgid "Saving App Config"
+msgstr ""
+
+#: airnef.pyw:557
+msgid "Could not write app config data. {:s}."
+msgstr ""
+
+#: airnef.pyw:575
+msgid "airnef Quick Tip"
+msgstr ""
+
+#: airnef.pyw:584 airnef.pyw:641
+msgid "Last Transfer Report"
+msgstr ""
+
+#: airnef.pyw:586
+msgid "Exit"
+msgstr ""
+
+#: airnef.pyw:587
+msgid "File"
+msgstr ""
+
+#: airnef.pyw:592
+msgid "System default"
+msgstr ""
+
+#: airnef.pyw:597
+msgid "Language"
+msgstr ""
+
+#: airnef.pyw:600
+msgid "About"
+msgstr ""
+
+#: airnef.pyw:601
+msgid "Help"
+msgstr ""
+
+#: airnef.pyw:607
+msgid ""
+"airnef - Version {:s}\n"
+"\n"
+"Running under Python Version {:d}.{:d}.{:d}\n"
+"\n"
+"Application is licensed under GPL v3\n"
+"\n"
+"Special thanks to Joe FitzPatrick for his work on reverse engineering Nikon's Wifi interface\n"
+"\n"
+"Camera bitmap courtesy of rg1024 at openclipart.org\n"
+"\n"
+"Computer bitmap courtesy of lnasto at openclipart.org\n"
+"\n"
+"Icon courtesy of Paomedia at iconfinder.com, licensed under Creative Commons (Attribution 3.0 Unported)"
+msgstr ""
+
+#: airnef.pyw:622
+msgid "< Back"
+msgstr ""
+
+#: airnef.pyw:625
+msgid "Camera IP address:"
+msgstr ""
+
+#: airnef.pyw:630
+msgid "Realtime download:"
+msgstr ""
+
+#: airnef.pyw:635
+msgid "Logging:"
+msgstr ""
+
+#: airnef.pyw:680
+msgid "Save to"
+msgstr ""
+
+#: airnef.pyw:683
+msgid "Output directory:"
+msgstr ""
+
+#: airnef.pyw:689
+msgid "Browse..."
+msgstr ""
+
+#: airnef.pyw:691
+msgid "If file exists:"
+msgstr ""
+
+#: airnef.pyw:697
+msgid "Skip images/movies you've previously downloaded"
+msgstr ""
+
+#: airnef.pyw:702
+msgid "Start Download"
+msgstr ""
+
+#: airnef.pyw:708
+msgid "Select folder to download images/movies into"
+msgstr ""
+
+#: airnef.pyw:748
+msgid "How would you like to choose which images to download?"
+msgstr ""
+
+#: airnef.pyw:749
+msgid "Pick the images on the camera itself, or set criteria such as file type and date on this computer."
+msgstr ""
+
+#: airnef.pyw:752
+msgid "Select in Camera"
+msgstr ""
+
+#: airnef.pyw:753
+msgid "Download the images you've marked for upload on the camera (Nikon)."
+msgstr ""
+
+#: airnef.pyw:754
+msgid "Select on Computer"
+msgstr ""
+
+#: airnef.pyw:755
+msgid "Download by file type, capture date, folder and card slot (Nikon, Canon, Sony)."
+msgstr ""
+
+#: airnef.pyw:773
+msgid "Download images you've selected in the camera"
+msgstr ""
+
+#: airnef.pyw:774
+msgid "airnef downloads the images on the camera's transfer list, then removes them from the list."
+msgstr ""
+
+#: airnef.pyw:781
+msgid "On the camera"
+msgstr ""
+
+#: airnef.pyw:783
+msgid "Turn your camera on and select which images you'd like to upload. This may be under the camera's WiFi menu as \"Select to send to smart device\" or in the playback menu, depending on the camera model."
+msgstr ""
+
+#: airnef.pyw:785
+msgid "Make sure your camera's WiFi is on. The camera may sometimes disable it without direction from the user."
+msgstr ""
+
+#: airnef.pyw:786
+msgid "Join your camera's WiFi network on your computer. It will have a name prefixed with \"Nikon\", such as \"Nikon_WU2_0090B6245A45\"."
+msgstr ""
+
+#: airnef.pyw:811
+msgid "Set criteria for which images/movies to download"
+msgstr ""
+
+#: airnef.pyw:812
+msgid "Only files matching every criterion are downloaded."
+msgstr ""
+
+#: airnef.pyw:822
+msgid "What to download"
+msgstr ""
+
+#: airnef.pyw:823
+msgid "Download:"
+msgstr ""
+
+#: airnef.pyw:827
+msgid "File types:"
+msgstr ""
+
+#: airnef.pyw:834
+msgid "More:"
+msgstr ""
+
+#: airnef.pyw:844
+msgid "Which images"
+msgstr ""
+
+#: airnef.pyw:845
+msgid "Capture date:"
+msgstr ""
+
+#: airnef.pyw:850
+msgid "From:"
+msgstr ""
+
+#: airnef.pyw:854
+msgid "To:"
+msgstr ""
+
+#: airnef.pyw:858
+msgid "Format: mm/dd/yy or mm/dd/yy hh:mm:ss"
+msgstr ""
+
+#: airnef.pyw:863
+msgid "Media card:"
+msgstr ""
+
+#: airnef.pyw:867
+msgid "Download order:"
+msgstr ""
+
+#: airnef.pyw:877
+msgid "Advanced"
+msgstr ""
+
+#: airnef.pyw:879
+msgid "Additional arguments:"
+msgstr ""
+
+#: airnef.pyw:892
+msgid "Preview File List"
+msgstr ""
+
+#: airnef.pyw:908
+msgid "Selection Issue"
+msgstr ""
+
+#: airnef.pyw:908
+msgid "At least one file type must be checked or entered, otherwise there won't be anything to download."
+msgstr ""
+
+#: airnef.pyw:913
+msgid "Invalid Start Date"
+msgstr ""
+
+#: airnef.pyw:913
+msgid "Invalid End Date"
+msgstr ""
+
+#: airnef.pyw:915
+msgid "The date \"{:s}\" is formatted incorrectly or is not a valid date/time. It must be formatted as mm/dd/yy or mm/dd/yy hh:mm:ss (including leading zeros)."
+msgstr ""
