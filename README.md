@@ -62,7 +62,22 @@ This is a partial list of camera's I've personally tested. Even if your camera i
 | `rename.py` | Rename engine |
 | `applog.py`, `strutil.py`, `dlinkedlist.py` | Logging, string/hexdump helpers, capture-date sorted linked list |
 | `airnefcmd_OSX_Frozen_Wrapper.py` | Wrapper that runs airnefcmd inside the frozen OS X app |
-| `six.py` | Bundled Python 2/3 compatibility library |
+| `tests/` | pytest suite; `tests/ptpip_sim.py` is a simulated PTP/IP camera (CIPA DC-005) |
+
+## Development
+
+Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/). The project pins Python 3.15 in `.python-version`.
+
+```bash
+uv sync                      # create .venv with the locked dependencies
+uv run pytest                # run the test suite against the simulated camera
+uv run airnefcmd.py --help   # command-line app
+uv run airnef.pyw            # GUI
+```
+
+The test suite needs no camera: `tests/ptpip_sim.py` implements the PTP/IP responder side
+(two TCP connections, Init Command/Event handshake, data phases, events, probes) and
+serves a small in-memory card that `airnefcmd.py` downloads from.
 
 ## Features Planned for Next Release
 

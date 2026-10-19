@@ -435,8 +435,10 @@ def establishAppEnvironment():
 	# and configuration files. For Win32 if we're frozen this
 	# goes in the dedicated OS area for application data files
 	#
-	g.appDataDir = None
-	if g.isFrozen and g.isWin32:
+	g.appDataDir = os.getenv('AIRNEF_APPDATA')	# explicit override (used by the test suite)
+	if g.appDataDir:
+		pass
+	elif g.isFrozen and g.isWin32:
 		if os.getenv('LOCALAPPDATA'):
 			g.appDataDir = os.path.join(os.getenv('LOCALAPPDATA'), "airnef\\appdata") # typically C:\Users\<username>\AppData\Local\airnef\appdata
 	elif g.isOSX: # for OSX we always try to store our app data under Application Support
@@ -642,6 +644,7 @@ def processCmdLine():
 	parser.add_argument('--realtimepollsecs', type=int, help='How often camera is polled for new images in realtime mode, in seconds. Default is every %(default)s seconds', default=3, metavar="seconds", required=False)
 	parser.add_argument('--logginglevel', type=str.lower, choices=['normal', 'verbose', 'debug' ], help='Sets how much information is saved to the result log. Default is "%(default)s"', default='normal', required=False)
 	# hidden args (because they wont be used often and will complicate users learning the command line - they are documented online)
+	parser.add_argument('--port', help=argparse.SUPPRESS, type=int, default=mtpwifi.MTP_TCPIP_PORT_DEFAULT, required=False)
 	parser.add_argument('--connecttimeout', help=argparse.SUPPRESS, type=int, default=10, required=False)
 	parser.add_argument('--socketreadwritetimeout', help=argparse.SUPPRESS, type=int, default=5, required=False)
 	parser.add_argument('--retrycount', help=argparse.SUPPRESS, type=int, default=sys.maxsize, required=False)
@@ -1105,7 +1108,7 @@ def startMtpSession():
 	#
 	# open TCP/IP socket connection to camera
 	#
-	g.socketPrimary = mtpwifi.openConnection(ipAddressStr, True, g.args['connecttimeout'], g.args['socketreadwritetimeout'])
+	g.socketPrimary = mtpwifi.openConnection(ipAddressStr, True, g.args['connecttimeout'], g.args['socketreadwritetimeout'], g.args['port'])
 
 	#
 	# get session ID
@@ -1117,7 +1120,7 @@ def startMtpSession():
 	#
 	# open secondary socket for events
 	#
-	g.socketEvents = mtpwifi.openConnection(ipAddressStr, False, g.args['connecttimeout'], g.args['socketreadwritetimeout'])
+	g.socketEvents = mtpwifi.openConnection(ipAddressStr, False, g.args['connecttimeout'], g.args['socketreadwritetimeout'], g.args['port'])
 	data = mtpwifi.sendInitEvents(g.socketEvents, g.sessionId)
 
 	#

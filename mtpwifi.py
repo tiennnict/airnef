@@ -467,8 +467,9 @@ def sendProbeRequest(s):
 #
 # opens TCP/IP socket to camera. this is the first step in communication
 #		
-def openConnection(ipAddrStr, verbose, connectionTimeoutSecs=SOCKET_TIMEOUT_CONNECT_SECS_DEFAULT, readWriteTimeoutSecs=SOCKET_TIMEOUT_READS_WRITES_DEFAULT):
-	port = 15740
+MTP_TCPIP_PORT_DEFAULT = 15740	# IANA-assigned PTP-IP port (CIPA DC-005 section 4)
+
+def openConnection(ipAddrStr, verbose, connectionTimeoutSecs=SOCKET_TIMEOUT_CONNECT_SECS_DEFAULT, readWriteTimeoutSecs=SOCKET_TIMEOUT_READS_WRITES_DEFAULT, port=MTP_TCPIP_PORT_DEFAULT):
 	applog_d("openConnection(): Attempting connection to {:s}:{:d}".format(ipAddrStr, port))
 	s = None
 	consoleWriteLine("Attempting to establish camera connection at {:s}:{:d} ".format(ipAddrStr, port))
