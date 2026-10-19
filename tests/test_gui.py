@@ -1,28 +1,18 @@
-"""Tests for the GUI (airnef.pyw): argument building, config migration, i18n and a widget smoke test."""
+"""Tests for the GUI (airnef/gui.py): argument building, config migration, i18n and a widget smoke test."""
 import datetime
-import importlib.util
 import json
 import re
-from importlib.machinery import SourceFileLoader
 from pathlib import Path
 
 import pytest
 
-import i18n
+from airnef import i18n
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def load_gui():
-    loader = SourceFileLoader('airnef_gui', str(ROOT / 'airnef.pyw'))
-    spec = importlib.util.spec_from_loader('airnef_gui', loader)
-    module = importlib.util.module_from_spec(spec)
-    loader.exec_module(module)
-    return module
-
-
 pytest.importorskip('tkinter', reason='tkinter is not available in this Python build')
-gui = load_gui()
+from airnef import gui
 
 
 def settings(**overrides):
@@ -60,11 +50,12 @@ def test_preview_and_custom_dates():
 
 
 def test_generated_args_are_accepted_by_airnefcmd(monkeypatch):
-    import cmdline
-    from appstate import g
+    from airnef import cmdline
+    from airnef.appstate import g
     args = gui.buildArgsSelectOnComputer(settings(download_date='custom', custom_date_start='01/02/24'))
     monkeypatch.setattr(cmdline.sys, 'argv', ['airnefcmd.py'] + args)
     monkeypatch.setattr(g, 'appDir', str(ROOT / 'nonexistent'))
+    monkeypatch.setattr(g, 'appDataDir', str(ROOT / 'nonexistent'))
     cmdline.processCmdLine()
     assert g.args['outputdir'] == r'C:\My Pictures'
     assert g.args['extlist'] == {'NEF', 'JPG'}
@@ -116,8 +107,8 @@ def test_gui_builds_every_page(tmp_path, language, monkeypatch, tk_root):
     try:
         (tmp_path / 'airnef-gui1-config').write_text(json.dumps({'language': language, 'realtime_download_choice': 'only realtime download'}), encoding='utf-8')
         monkeypatch.setattr(gui, 'root', root)
-        gui.g.appDir = str(ROOT)
-        gui.g.appResourceDir = str(ROOT / 'appresource')
+        gui.g.appDir = gui.paths.appDir()
+        gui.g.appResourceDir = gui.paths.resourceDir()
         gui.g.appDataDir = str(tmp_path)
         gui.g.isWin32 = gui.platform.system() == 'Windows'
         gui.g.isOSX = False
@@ -150,8 +141,8 @@ def transfer_env(tmp_path, monkeypatch, tk_root):
     from types import SimpleNamespace
     monkeypatch.setenv('AIRNEF_APPDATA', str(tmp_path / 'appdata'))
     monkeypatch.setattr(gui, 'root', tk_root)
-    gui.g.appDir = str(ROOT)
-    gui.g.appResourceDir = str(ROOT / 'appresource')
+    gui.g.appDir = gui.paths.appDir()
+    gui.g.appResourceDir = gui.paths.resourceDir()
     gui.g.appDataDir = str(tmp_path / 'appdata')
     gui.g.isWin32 = gui.platform.system() == 'Windows'
     gui.g.isOSX = gui.g.isFrozen = False

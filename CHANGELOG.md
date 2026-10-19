@@ -9,6 +9,12 @@ original v1.1 release. The version number lives in `version.py`.
 - Ported to Python 3 (3.12 or newer); Python 2 and the bundled `six.py` are gone.
 - Project is managed with [uv](https://docs.astral.sh/uv/) (`pyproject.toml`, `uv.lock`,
   `.python-version`); run it with `uv sync` / `uv run`.
+- Packaged: the code is the `airnef` package (`src/airnef/`) built with `uv_build`, with `airnef`
+  (GUI, no console window on Windows) and `airnefcmd` commands; install with
+  `uv tool install git+https://github.com/tiennnict/airnef`. The former flat modules
+  (`cmdline`, `appstate`, ...) no longer clutter the top-level import namespace.
+- Settings, logs, history and the object cache live in a per-user directory (`paths.py`) instead of
+  next to the code; a checkout's existing `appdata` directory keeps being used.
 - The GUI launches `airnefcmd` with its own interpreter instead of whatever `python` is on `PATH`.
 - Prebuilt installers (Windows, OS X `.dmg`, Linux binaries) are no longer part of this repository.
 

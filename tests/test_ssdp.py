@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-import ssdp
+from airnef import ssdp
 
 SONY_SVC = "urn:microsoft-com:service:MtpNullService:1"
 CANON_SVC = "urn:schemas-canon-com:service:ICPO-SmartPhoneEOSSystemService:1"

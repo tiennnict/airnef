@@ -38,13 +38,14 @@ import platform
 import json
 import datetime
 import sys
-import i18n
-from i18n import _, N_
+from . import i18n
+from . import paths
+from .i18n import _, N_
 
 #
 # constants
 #
-from version import __version__ as AIRNEF_APP_VERSION
+from .version import __version__ as AIRNEF_APP_VERSION
 APP_CONFIG_VERSION	= 2		# v2 stores option keys instead of (English) display text
 OUTPUTDIR_HISTORY_MAX = 32	# number of most-recently-used output directories remembered
 PAD = 8						# standard spacing between widgets, in pixels
@@ -244,7 +245,7 @@ def airnefcmdCommand():
 	pythonExe = sys.executable
 	if os.path.basename(pythonExe).lower() == 'pythonw.exe':
 		pythonExe = os.path.join(os.path.dirname(pythonExe), 'python.exe') # console build; its window is suppressed below
-	return [pythonExe, os.path.join(g.appDir, 'airnefcmd.py')]
+	return [pythonExe, '-m', 'airnef.airnefcmd']
 
 
 #
@@ -1224,39 +1225,12 @@ def establishAppEnvironment():
 
 	g.isWin32 = (platform.system() == 'Windows')
 	g.isOSX = (platform.system() == 'Darwin')
-	g.isFrozen = (getattr(sys, 'frozen', False))
+	g.isFrozen = paths.isFrozen()
 
-	#
-	# determine the directory our script resides in, in case the
-	# user is executing from a different working directory.
-	#
-	g.appDir = os.path.dirname(os.path.realpath(sys.argv[0]))
-	g.appResourceDir = os.path.join(g.appDir, "appresource")
-
-	#
-	# determine directory for our APPDATA, which contains log
-	# and configuration files. For Win32 if we're frozen this
-	# goes in the dedicated OS area for application data files.
-	# must match the logic in airnefcmd.py, which writes the report we display
-	#
-	g.appDataDir = os.getenv('AIRNEF_APPDATA')
-	if g.appDataDir:
-		pass
-	elif g.isFrozen and g.isWin32:
-		if os.getenv('LOCALAPPDATA'):
-			g.appDataDir = os.path.join(os.getenv('LOCALAPPDATA'), "airnef\\appdata") # typically C:\Users\<username>\AppData\Local\airnef\appdata
-	elif g.isOSX: # for OSX we always try to store our app data under Application Support
-		userHomeDir = os.getenv('HOME')
-		if userHomeDir:
-			applicationSupportDir = os.path.join(userHomeDir, 'Library/Application Support')
-			if os.path.exists(applicationSupportDir): # probably not necessary to check existence since every system should have this directory
-				g.appDataDir = os.path.join(applicationSupportDir, 'airnef/appdata')
-	if not g.appDataDir:
-		# none of runtime-specific cases above selected an app data directory - use directory based off our app directory
-		g.appDataDir = os.path.join(g.appDir, "appdata")
-	# create our app-specific subdirectories if necessary
-	if not os.path.exists(g.appDataDir):
-		os.makedirs(g.appDataDir)
+	g.appDir = paths.appDir()
+	g.appResourceDir = paths.resourceDir()
+	# must be the directory airnefcmd uses, since it writes the report we display (see paths.py)
+	g.appDataDir = paths.ensureAppDataDir()
 
 
 #

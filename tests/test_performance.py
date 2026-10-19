@@ -4,12 +4,12 @@ from types import SimpleNamespace
 
 import pytest
 
-import downloader
-import mtpwifi
-from appstate import g
-import mtpbulk
-from dlinkedlist import LinkedList, LinkedListObj
-from mtpdef import (MTP_OP_GetPartialObject, MTP_OP_GetPartialObject64, MTP_OP_Nikon_GetPartialObjectEx,
+from airnef import downloader
+from airnef import mtpwifi
+from airnef.appstate import g
+from airnef import mtpbulk
+from airnef.dlinkedlist import LinkedList, LinkedListObj
+from airnef.mtpdef import (MTP_OP_GetPartialObject, MTP_OP_GetPartialObject64, MTP_OP_Nikon_GetPartialObjectEx,
                     MTP_OBJPROP_ObjectFileName, MTP_OBJPROP_ObjectFormat)
 from test_integration import make_camera, run_airnefcmd
 

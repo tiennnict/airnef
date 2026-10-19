@@ -19,16 +19,16 @@ import datetime
 import sys
 import os
 import json
-import mtpwifi
-import strutil
-import mtpbulk
+from . import mtpwifi
+from . import strutil
+from . import mtpbulk
 from collections import namedtuple
-from dlinkedlist import *
-from applog import *
-from mtpdef import *
-from appstate import *
-from mtpdatasets import mtpTimeStrToEpoch, parseMtpCountedWordList
-from camerasession import getMtpObjectHandles, getMtpObjectInfo
+from .dlinkedlist import *
+from .applog import *
+from .mtpdef import *
+from .appstate import *
+from .mtpdatasets import mtpTimeStrToEpoch, parseMtpCountedWordList
+from .camerasession import getMtpObjectHandles, getMtpObjectInfo
 
 		
 #

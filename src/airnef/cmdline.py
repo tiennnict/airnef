@@ -18,11 +18,11 @@ import time
 import sys
 import os
 import errno
-import mtpwifi
-import rename
-from applog import *
-from mtpdef import *
-from appstate import *
+from . import mtpwifi
+from . import rename
+from .applog import *
+from .mtpdef import *
+from .appstate import *
 
 		
 #
@@ -198,7 +198,10 @@ def processCmdLine():
 	#
 	# if there is a default arguments file present, add it to the argument list so that parse_args() will process it
 	#
-	defaultArgFilename = os.path.join(g.appDir, "airnefcmd-defaultopts")
+	# the user's app data directory first; the application directory is still checked for files placed there by v1.x
+	defaultArgFilename = os.path.join(g.appDataDir, "airnefcmd-defaultopts")
+	if not os.path.exists(defaultArgFilename):
+		defaultArgFilename = os.path.join(g.appDir, "airnefcmd-defaultopts")
 	if os.path.exists(defaultArgFilename):
 		sys.argv.insert(1, "!" + defaultArgFilename) # insert as first arg (past script name), so that the options in the file can still be overriden by user-entered cmd line options
 			

@@ -21,7 +21,7 @@ import urllib.parse
 import time
 import sys
 import platform
-from applog import *
+from .applog import *
 
 #	
 # ssdpTypeFromResponseStr() return values

@@ -1,8 +1,8 @@
 import re
 from pathlib import Path
 
-import appstate
-from version import __version__
+from airnef import appstate
+from airnef.version import __version__
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -17,5 +17,5 @@ def test_airnefcmd_uses_version_module():
 
 
 def test_gui_uses_version_module():
-    source = (ROOT / "airnef.pyw").read_text(encoding="utf-8")
-    assert "from version import __version__ as AIRNEF_APP_VERSION" in source
+    source = (ROOT / "src" / "airnef" / "gui.py").read_text(encoding="utf-8")
+    assert "from .version import __version__ as AIRNEF_APP_VERSION" in source

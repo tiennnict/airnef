@@ -7,8 +7,8 @@ import time
 
 import pytest
 
-import mtpwifi
-from mtpdef import MTP_OP_GetDeviceInfo, MTP_OP_GetObject, MTP_RESP_Ok, MTP_RESP_TransactionCancelled
+from airnef import mtpwifi
+from airnef.mtpdef import MTP_OP_GetDeviceInfo, MTP_OP_GetObject, MTP_RESP_Ok, MTP_RESP_TransactionCancelled
 from ptpip_sim import EVENT_OBJECT_ADDED, wait_for
 from test_integration import ROOT, make_camera, run_airnefcmd
 from test_p0_fixes import ScriptedSocket, packet
@@ -88,7 +88,7 @@ def test_realtime_download_reacts_to_object_added_event(tmp_path):
     out = tmp_path / 'out'
     out.mkdir()
     env = dict(os.environ, AIRNEF_APPDATA=str(tmp_path / 'appdata'))
-    cmd = [sys.executable, str(ROOT / 'airnefcmd.py'), '--ipaddress', '127.0.0.1', '--port', str(cam.port),
+    cmd = [sys.executable, '-m', 'airnef.airnefcmd', '--ipaddress', '127.0.0.1', '--port', str(cam.port),
            '--retrycount', '1', '--outputdir', str(out), '--realtimedownload', 'only', '--realtimepollsecs', '60']
     proc = subprocess.Popen(cmd, cwd=tmp_path, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:

@@ -233,4 +233,4 @@ agents.md
 appdata/
 
 # translation template used by translators (tools/extract_messages.py)
-!locale/airnef.pot
+!src/airnef/locale/airnef.pot

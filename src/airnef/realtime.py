@@ -15,14 +15,14 @@
 
 import struct
 import sys
-import strutil
-from applog import *
-from mtpdef import *
-from appstate import *
-from mtpdatasets import genNikonEventListDescription
-from camerasession import getMtpObjectHandles, getMtpObjectInfo, getNikonMtpEvents, getNumMtpObjects, waitForCameraActivity
-from objectcatalog import MtpObject, createMtpObjectFromHandle, createMtpObjectsFromHandleList
-from downloader import downloadMtpFileObjects
+from . import strutil
+from .applog import *
+from .mtpdef import *
+from .appstate import *
+from .mtpdatasets import genNikonEventListDescription
+from .camerasession import getMtpObjectHandles, getMtpObjectInfo, getNikonMtpEvents, getNumMtpObjects, waitForCameraActivity
+from .objectcatalog import MtpObject, createMtpObjectFromHandle, createMtpObjectsFromHandleList
+from .downloader import downloadMtpFileObjects
 
 #
 # sets/changes the capture date filter to our app's start time. this is

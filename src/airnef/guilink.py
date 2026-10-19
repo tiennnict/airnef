@@ -30,8 +30,8 @@ import queue
 import sys
 import threading
 
-import applog
-import mtpwifi
+from . import applog
+from . import mtpwifi
 
 PREFIX = '@@'
 

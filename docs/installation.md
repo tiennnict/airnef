@@ -15,19 +15,34 @@ The original Windows installer, OS X `.dmg` and Linux binaries published by test
 - Tkinter for the GUI. It ships with Python on Windows and macOS; on Linux install it with
   `sudo apt-get install python3-tk` (or your distribution's equivalent).
 
+## Installing as a command
+
+```bash
+uv tool install git+https://github.com/tiennnict/airnef
+```
+
+This installs two commands in their own virtual environment: `airnef` (the GUI; on Windows it
+opens without a console window) and `airnefcmd` (the command-line app). Update with
+`uv tool upgrade airnef`. Settings, logs, the download history and the object cache are kept per
+user: `%LOCALAPPDATA%\airnef\appdata` on Windows, `~/Library/Application Support/airnef/appdata` on
+macOS and `~/.local/share/airnef/appdata` (or `$XDG_DATA_HOME/airnef/appdata`) on Linux. The
+`AIRNEF_APPDATA` environment variable overrides this directory.
+
 ## Running from source
 
 ```bash
 git clone https://github.com/tiennnict/airnef.git
 cd airnef
-uv sync                          # creates .venv from pyproject.toml / uv.lock
-uv run airnef.pyw                # GUI
-uv run airnefcmd.py --help       # command-line app
+uv sync                          # creates .venv, installs the project and its commands
+uv run airnef                    # GUI
+uv run airnefcmd --help          # command-line app
 uv run pytest                    # test suite (uses a simulated PTP/IP camera)
 ```
 
-`uv sync` downloads a suitable Python if none is installed. The GUI launches `airnefcmd.py` with
-the same interpreter, so there is nothing else to configure.
+`uv sync` downloads a suitable Python if none is installed. The GUI starts `airnefcmd` with the
+same interpreter, so there is nothing else to configure. When run from a source checkout that
+already has an `appdata` directory next to `pyproject.toml` (created by earlier versions) that
+directory keeps being used.
 
 The GUI runs `airnefcmd` in the background and shows its progress in its own transfer window, so
 no terminal is needed.

@@ -30,18 +30,19 @@ import errno
 import traceback
 import platform
 import socket
-import mtpwifi
-import strutil
-import ssdp
-import guilink
-from applog import *
-from mtpdef import *
-from appstate import *
-from camerasession import closeSockets, endMtpSession, getMtpStorageInfo, notifyCameraUserTransferSessionStarting, selectMtpStorageId, startMtpSession, syncCameraDateTimeIfNecessary
-from objectcatalog import buildMtpObjects
-from downloader import downloadMtpFileObjects, printMtpObjectDirectoryListing
-from realtime import changeCaptureDateFilterToAppStartTime, realTimeCapture
-from cmdline import processCmdLine
+from . import mtpwifi
+from . import strutil
+from . import ssdp
+from . import guilink
+from . import paths
+from .applog import *
+from .mtpdef import *
+from .appstate import *
+from .camerasession import closeSockets, endMtpSession, getMtpStorageInfo, notifyCameraUserTransferSessionStarting, selectMtpStorageId, startMtpSession, syncCameraDateTimeIfNecessary
+from .objectcatalog import buildMtpObjects
+from .downloader import downloadMtpFileObjects, printMtpObjectDirectoryListing
+from .realtime import changeCaptureDateFilterToAppStartTime, realTimeCapture
+from .cmdline import processCmdLine
 
 #
 # verifies user is running version a modern-enough version of python for this app
@@ -59,39 +60,15 @@ def verifyPythonVersion():
 def establishAppEnvironment():
 
 	g.isWin32 = (platform.system() == 'Windows')
-	g.isOSX = (platform.system() == 'Darwin') 
-	g.isFrozen = (getattr(sys, 'frozen', False)) # note for OSX isFrozen is always false because py2app only marks airnef.pyw as frozen when we're a py2app
+	g.isOSX = (platform.system() == 'Darwin')
+	g.isFrozen = paths.isFrozen()
 
-	#
-	# determine the directory our script resides in, in case the
-	# user is executing from a different working directory.
-	#
-	g.appDir = os.path.dirname(os.path.realpath(sys.argv[0]))
+	# where the application's files are (the installed package, or the executable's directory when frozen)
+	g.appDir = paths.appDir()
 
-	#
-	# determine directory for our APPDATA, which contains log
-	# and configuration files. For Win32 if we're frozen this
-	# goes in the dedicated OS area for application data files
-	#
-	g.appDataDir = os.getenv('AIRNEF_APPDATA')	# explicit override (used by the test suite)
-	if g.appDataDir:
-		pass
-	elif g.isFrozen and g.isWin32:
-		if os.getenv('LOCALAPPDATA'):
-			g.appDataDir = os.path.join(os.getenv('LOCALAPPDATA'), "airnef\\appdata") # typically C:\Users\<username>\AppData\Local\airnef\appdata
-	elif g.isOSX: # for OSX we always try to store our app data under Application Support
-		userHomeDir = os.getenv('HOME')
-		if userHomeDir:
-			applicationSupportDir = os.path.join(userHomeDir, 'Library/Application Support')
-			if os.path.exists(applicationSupportDir): # probably not necessary to check existence since every system should have this directory
-				g.appDataDir = os.path.join(applicationSupportDir, 'airnef/appdata')
-	if not g.appDataDir:
-		# none of runtime-specific cases above selected an app data directory - use directory based off our app directory
-		g.appDataDir = os.path.join(g.appDir, "appdata")
-	# create our app-specific subdirectories if necessary
-	if not os.path.exists(g.appDataDir):
-		os.makedirs(g.appDataDir)
-		
+	# directory for our APPDATA, which contains log and configuration files (see paths.py)
+	g.appDataDir = paths.ensureAppDataDir()
+
 #
 # main work routine
 #

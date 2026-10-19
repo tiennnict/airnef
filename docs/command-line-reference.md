@@ -2,9 +2,9 @@
 
 > Docs: [README](../README.md) · [Installation](installation.md) · [Camera setup](camera-setup.md) · [User guide](user-guide.md) · [Renaming engine](renaming-engine.md) · [Command line](command-line-reference.md) · [FAQ](faq.md)
 
-## airnefcmd.py [optional args]
+## airnefcmd [optional args]
 
-Run with `uv run airnefcmd.py [optional args]` (see [Installation](installation.md)).
+Run `airnefcmd [optional args]` (installed as a command) or `uv run airnefcmd [optional args]` from a source checkout (see [Installation](installation.md)).
 
 When run with no options Airnef's default behavior is to either download every image that has been selected for download by the user on the camera's playback menu or, if no images were selected on the camera, to download every image/movie file it finds on the first populated memory card in the camera located at IP address 192.168.1.1 (Nikon's default IP address), storing the files into the current directory and skipping any files downloaded on previous invocations. Any name collisions with existing files will be resolved by generating unique filenames by adding a -new-x suffix (for example, DSC_1575.nef becomes DSC_1575-new-1.nef, DSC_1575-new-2.nef, etc...). Optional command-line arguments can be added to set the criteria of which files to download, where they should be downloaded, how filename collisions should be resolved, and other general behavior of the application.
 
@@ -18,7 +18,7 @@ Prints a help display listing all the typical options supported
 
 ### `!filename` (changed from '@filename' to '!filename' in v1.1)
 
-Load additional arguments from a text file. In addition to any parameter files you specify, airnefcmd will always load a file named 'airnefcmd-defaultopts' in its working directory if it exists (Airnef looks for this file in the directory containing airnefcmd.py). The parameters from the default file will be loaded first, allowing you to override them with parameters from your own files and those specified on the command line. All parameter files must be formatted so that each parameter word is on a separate line, which is a requirement of Python's argparse routine. For example:
+Load additional arguments from a text file. In addition to any parameter files you specify, airnefcmd will always load a file named 'airnefcmd-defaultopts' if it exists (Airnef looks for it in its app data directory - see [Installation](installation.md#installing-as-a-command) - and then in the application directory). The parameters from the default file will be loaded first, allowing you to override them with parameters from your own files and those specified on the command line. All parameter files must be formatted so that each parameter word is on a separate line, which is a requirement of Python's argparse routine. For example:
 
 ```text
 	--action

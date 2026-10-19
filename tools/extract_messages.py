@@ -13,10 +13,10 @@ import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
-import i18n  # noqa: E402
+sys.path.insert(0, os.path.join(ROOT, 'src'))
+from airnef import i18n  # noqa: E402
 
-SOURCES = ['airnef.pyw']
+SOURCES = ['src/airnef/gui.py']
 
 
 def extract():

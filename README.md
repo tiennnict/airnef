@@ -54,11 +54,15 @@ This is a partial list of camera's I've personally tested. Even if your camera i
 
 ## Source Layout
 
-| File | Role |
+The code is the `airnef` package in `src/airnef/`; `uv sync` installs it together with the `airnef`
+(GUI) and `airnefcmd` (command-line) commands.
+
+| File (in `src/airnef/`) | Role |
 |---|---|
-| `airnef.pyw` | GUI (themed Tkinter/ttk) - builds the command line and launches `airnefcmd` |
+| `gui.py` | GUI (themed Tkinter/ttk): collects the options, runs `airnefcmd` in the background and shows a transfer window |
+| `guilink.py` | The pipe protocol between the GUI and `airnefcmd` (progress, cancel, prompts) |
 | `i18n.py`, `locale/` | Interface translations (gettext `.po` catalogs) |
-| `tools/extract_messages.py` | Extracts translatable strings into `locale/airnef.pot` and merges them into the catalogs |
+| `paths.py` | Where resources and user data (settings, logs, history, cache) live |
 | `airnefcmd.py` | Command-line app entry point: environment setup and the session/retry loop |
 | `version.py` | Application version (single source of truth; see also `CHANGELOG.md`) |
 | `appstate.py` | Constants, error codes and the shared global state of airnefcmd |
@@ -74,8 +78,13 @@ This is a partial list of camera's I've personally tested. Even if your camera i
 | `ssdp.py` | SSDP discovery (`--ipaddress auto`) for Sony/Canon |
 | `rename.py` | Rename engine |
 | `applog.py`, `strutil.py`, `dlinkedlist.py` | Logging, string/hexdump helpers, capture-date sorted linked list |
-| `airnefcmd_OSX_Frozen_Wrapper.py` | Wrapper that runs airnefcmd inside the frozen OS X app |
+| `appresource/` | Icons and button images |
+
+| Elsewhere | Role |
+|---|---|
 | `tests/` | pytest suite; `tests/ptpip_sim.py` is a simulated PTP/IP camera (CIPA DC-005) |
+| `tools/` | `extract_messages.py` (translation catalogs), `bench_download.py` (download speed benchmark) |
+| `airnefcmd_OSX_Frozen_Wrapper.py` | Wrapper that runs airnefcmd inside the frozen OS X app |
 
 ## Development
 
@@ -84,23 +93,23 @@ Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/). The project pins Pyt
 ```bash
 uv sync                      # create .venv with the locked dependencies
 uv run pytest                # run the test suite against the simulated camera
-uv run airnefcmd.py --help   # command-line app
-uv run airnef.pyw            # GUI
+uv run airnefcmd --help      # command-line app
+uv run airnef                # GUI
 ```
 
 The test suite needs no camera: `tests/ptpip_sim.py` implements the PTP/IP responder side
 (two TCP connections, Init Command/Event handshake, data phases, events, probes) and
-serves a small in-memory card that `airnefcmd.py` downloads from.
+serves a small in-memory card that `airnefcmd` downloads from.
 
 ## Translations
 
 The GUI is available in English and Vietnamese. It follows the operating system language
 by default; use **Language** in the menu bar to choose another one. To add a language:
 
-1. Copy `locale/airnef.pot` to `locale/<language code>/LC_MESSAGES/airnef.po` and translate
+1. Copy `src/airnef/locale/airnef.pot` to `src/airnef/locale/<language code>/LC_MESSAGES/airnef.po` and translate
    the `msgstr` entries (any gettext editor such as Poedit works).
-2. Add the language's native name to `LANGUAGE_NAMES` in `i18n.py`.
-3. After changing user-visible strings in `airnef.pyw`, run
+2. Add the language's native name to `LANGUAGE_NAMES` in `src/airnef/i18n.py`.
+3. After changing user-visible strings in `gui.py`, run
    `uv run tools/extract_messages.py` to refresh the template and catalogs, and
    `uv run tools/extract_messages.py --check` to list untranslated strings.
 

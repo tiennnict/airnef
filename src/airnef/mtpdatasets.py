@@ -16,11 +16,11 @@
 import struct
 import time
 import sys
-import strutil
+from . import strutil
 from collections import namedtuple
-from applog import *
-from mtpdef import *
-from appstate import *
+from .applog import *
+from .mtpdef import *
+from .appstate import *
 
 #
 # Converts counted utf-16 MTP string to unicode string

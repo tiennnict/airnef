@@ -4,10 +4,10 @@ import struct
 
 import pytest
 
-import applog
-import mtpwifi
-import strutil
-from mtpdef import MTP_OP_GetDeviceInfo, MTP_RESP_Ok
+from airnef import applog
+from airnef import mtpwifi
+from airnef import strutil
+from airnef.mtpdef import MTP_OP_GetDeviceInfo, MTP_RESP_Ok
 
 
 class ScriptedSocket:
@@ -88,14 +88,14 @@ def test_applog_shutdown_closes_both_logs(tmp_path):
 
 
 def test_extension_filter_is_case_insensitive():
-    from objectcatalog import isMtpFilenameExtInList
+    from airnef.objectcatalog import isMtpFilenameExtInList
     assert isMtpFilenameExtInList('dsc_0001.jpg', {'JPG'})
     assert not isMtpFilenameExtInList('dsc_0001.nef', {'JPG'})
 
 
 def test_download_history_skips_truncated_line(tmp_path):
-    import downloader
-    from appstate import g
+    from airnef import downloader
+    from airnef.appstate import g
     root = tmp_path / 'cam'
     hist = tmp_path / 'cam-downloadhist'
     hist.write_text('DSC_1.NEF::20150101T000000::1,000::::01/01/15 00:00:00::/pics/DSC_1.NEF\n'

@@ -25,11 +25,11 @@ import struct
 import time
 import threading
 import select
-import strutil
+from . import strutil
 import errno
 from collections import deque
-from applog import *
-from mtpdef import *
+from .applog import *
+from .mtpdef import *
 from collections import namedtuple
 
 #

@@ -18,16 +18,16 @@ import time
 import sys
 import os
 import subprocess
-import mtpwifi
-import strutil
-import rename
-import guilink
+from . import mtpwifi
+from . import strutil
+from . import rename
+from . import guilink
 from collections import namedtuple
-from applog import *
-from mtpdef import *
-from appstate import *
-from camerasession import getMtpObjectInfo, getSlotIndexFromStorageId, mtpSessionKeepAlive
-from objectcatalog import MtpObject, doesMtpObjectPassUserFileFilter, getNextUserFilteredMtpFileObject, isMtpFilenameExtInList
+from .applog import *
+from .mtpdef import *
+from .appstate import *
+from .camerasession import getMtpObjectInfo, getSlotIndexFromStorageId, mtpSessionKeepAlive
+from .objectcatalog import MtpObject, doesMtpObjectPassUserFileFilter, getNextUserFilteredMtpFileObject, isMtpFilenameExtInList
 
 #
 # returns the size of an object. ObjectInfo stores the size as a UINT32, so objects of 4GB or

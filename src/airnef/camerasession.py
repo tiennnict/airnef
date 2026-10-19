@@ -18,13 +18,13 @@ import time
 import sys
 import os
 import math
-import mtpwifi
-import strutil
-import ssdp
-from applog import *
-from mtpdef import *
-from appstate import *
-from mtpdatasets import convertGuidStrToLongs, mtpCountedUtf16ToPythonUnicodeStr, mtpTimeStrToEpoch, parseMptStorageIds, parseMtpCountedWordList, parseMtpDeviceInfo, parseMtpObjectInfo, parseMtpStorageInfo, parseNikonMtpEventData
+from . import mtpwifi
+from . import strutil
+from . import ssdp
+from .applog import *
+from .mtpdef import *
+from .appstate import *
+from .mtpdatasets import convertGuidStrToLongs, mtpCountedUtf16ToPythonUnicodeStr, mtpTimeStrToEpoch, parseMptStorageIds, parseMtpCountedWordList, parseMtpDeviceInfo, parseMtpObjectInfo, parseMtpStorageInfo, parseNikonMtpEventData
 
 #
 # called within application wait loops, this method makes

@@ -15,15 +15,15 @@
 
 import time
 import os
-import strutil
-from applog import *
-from mtpdef import *
+from . import strutil
+from .applog import *
+from .mtpdef import *
 
 #
 # constants
 #
 
-from version import __version__ as AIRNEFCMD_APP_VERSION
+from .version import __version__ as AIRNEFCMD_APP_VERSION
 
 DEFAULT_MAX_KB_PER_GET_OBJECT_REQUEST				= 1024 		# 1MB - empirically tweaked to get max download performance from Nikon bodies (too large an xfer and Nikon bodies start intermittently dropping connections)
 DEFAULT_MAX_KB_TO_BUFFER_FOR_GET_OBJECT_REQUESTS 	= 32768		# 32MB - max bytes we buffer before flushing what we have to disk

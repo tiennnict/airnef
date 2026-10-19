@@ -16,7 +16,7 @@ class GuiModeProcess:
         self.out = tmp_path / 'out'
         self.out.mkdir(exist_ok=True)
         env = dict(os.environ, AIRNEF_APPDATA=str(tmp_path / 'appdata'), PYTHONIOENCODING='utf-8', PYTHONUNBUFFERED='1')
-        cmd = [sys.executable, str(ROOT / 'airnefcmd.py'), '--guimode', 'yes', '--ipaddress', '127.0.0.1', '--port', str(cam.port),
+        cmd = [sys.executable, '-m', 'airnef.airnefcmd', '--guimode', 'yes', '--ipaddress', '127.0.0.1', '--port', str(cam.port),
                '--retrycount', '1', '--outputdir', str(self.out), *args]
         self.proc = subprocess.Popen(cmd, cwd=tmp_path, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT, text=True, encoding='utf-8')

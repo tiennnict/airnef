@@ -1,18 +1,38 @@
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14"]
+build-backend = "uv_build"
+
 [project]
 name = "airnef"
 version = "2.0.0"
 description = "Wireless file transfer for PTP/MTP-equipped cameras (Nikon, Canon, Sony) over PTP/IP"
 readme = "README.md"
 license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = []
+keywords = ["camera", "nikon", "canon", "sony", "ptp", "ptp-ip", "wifi", "photo-transfer"]
+classifiers = [
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications",
+    "Environment :: MacOS X",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Multimedia :: Graphics :: Capture :: Digital Camera",
+]
+
+[project.urls]
+Homepage = "https://github.com/tiennnict/airnef"
+Changelog = "https://github.com/tiennnict/airnef/blob/main/CHANGELOG.md"
+
+[project.scripts]
+airnefcmd = "airnef.airnefcmd:main"
+
+[project.gui-scripts]
+airnef = "airnef.gui:main"
 
 [dependency-groups]
 dev = ["pytest"]
 
-[tool.uv]
-package = false
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = [".", "tests"]
+pythonpath = [".", "src", "tests"]

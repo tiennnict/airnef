@@ -23,7 +23,7 @@
 #
 
 import struct
-from mtpdef import *
+from .mtpdef import *
 
 
 class BulkDatasetError(Exception):

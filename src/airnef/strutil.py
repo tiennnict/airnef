@@ -12,7 +12,7 @@
 #
 
 import struct
-from applog import *
+from .applog import *
 import sys
 import time
 
