@@ -1,5 +1,6 @@
 """Tests for the GUI (airnef/gui.py): argument building, config migration, i18n and a widget smoke test."""
 import datetime
+import gc
 import json
 import re
 from pathlib import Path
@@ -88,6 +89,18 @@ def test_language_switch_and_fallback():
     assert i18n._('Start Download') == 'Start Download'
 
 
+@pytest.fixture(autouse=True)
+def collect_tk_garbage():
+    """Finalise leftover Tk objects (variables, images) on the main thread, right after each test.
+
+    If the garbage collector ran in another thread instead - for example a simulated camera's thread in a
+    later test - each Variable/Image deallocation would wait about a second for the Tk main loop (Linux),
+    stalling that thread long enough to make unrelated subprocess tests time out.
+    """
+    yield
+    gc.collect()
+
+
 @pytest.fixture(scope='module')
 def tk_root():
     """One Tk interpreter for all GUI tests - Tk doesn't reliably support re-creating it in one process."""
@@ -98,6 +111,7 @@ def tk_root():
         pytest.skip('no display available')
     root.withdraw()
     yield root
+    gc.collect()
     root.destroy()
 
 

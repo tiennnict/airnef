@@ -24,7 +24,7 @@ def make_camera(**kwargs):
 def run_airnefcmd(cam, tmp_path, *args, timeout=60):
     env = dict(os.environ, AIRNEF_APPDATA=str(tmp_path / 'appdata'), PYTHONIOENCODING='utf-8')
     cmd = [sys.executable, '-m', 'airnef.airnefcmd', '--ipaddress', '127.0.0.1', '--port', str(cam.port),
-           '--retrycount', '1', '--connecttimeout', '5', '--logginglevel', 'debug', *args]
+           '--retrycount', '1', '--connecttimeout', '5', *args]
     return subprocess.run(cmd, cwd=tmp_path, env=env, capture_output=True, text=True, encoding='utf-8', timeout=timeout)
 
 
