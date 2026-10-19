@@ -54,7 +54,9 @@ This is a partial list of camera's I've personally tested. Even if your camera i
 
 | File | Role |
 |---|---|
-| `airnef.pyw` | GUI (Tkinter) - builds the command line and launches `airnefcmd` |
+| `airnef.pyw` | GUI (themed Tkinter/ttk) - builds the command line and launches `airnefcmd` |
+| `i18n.py`, `locale/` | Interface translations (gettext `.po` catalogs) |
+| `tools/extract_messages.py` | Extracts translatable strings into `locale/airnef.pot` and merges them into the catalogs |
 | `airnefcmd.py` | Command-line app: session, object enumeration, cache, download, realtime, retry |
 | `mtpwifi.py` | PTP/IP transport (CIPA DC-005, TCP 15740): handshake, data phases, cancel, keep-alive, background event channel |
 | `mtpdef.py` | PTP/MTP constants (opcodes, responses, events, device and object props) incl. Nikon/Canon/Sony vendor codes |
@@ -79,6 +81,18 @@ uv run airnef.pyw            # GUI
 The test suite needs no camera: `tests/ptpip_sim.py` implements the PTP/IP responder side
 (two TCP connections, Init Command/Event handshake, data phases, events, probes) and
 serves a small in-memory card that `airnefcmd.py` downloads from.
+
+## Translations
+
+The GUI is available in English and Vietnamese. It follows the operating system language
+by default; use **Language** in the menu bar to choose another one. To add a language:
+
+1. Copy `locale/airnef.pot` to `locale/<language code>/LC_MESSAGES/airnef.po` and translate
+   the `msgstr` entries (any gettext editor such as Poedit works).
+2. Add the language's native name to `LANGUAGE_NAMES` in `i18n.py`.
+3. After changing user-visible strings in `airnef.pyw`, run
+   `uv run tools/extract_messages.py` to refresh the template and catalogs, and
+   `uv run tools/extract_messages.py --check` to list untranslated strings.
 
 ## Features Planned for Next Release
 

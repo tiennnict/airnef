@@ -1,0 +1,415 @@
+# airnef user interface translations (Tiếng Việt)
+# This file is distributed under the same license as airnef (GPL v3).
+msgid ""
+msgstr ""
+"Project-Id-Version: airnef\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: airnef.pyw:55
+msgid "normal"
+msgstr "bình thường"
+
+#: airnef.pyw:55
+msgid "verbose"
+msgstr "chi tiết"
+
+#: airnef.pyw:55
+msgid "debug"
+msgstr "gỡ lỗi"
+
+#: airnef.pyw:57
+msgid "none - exit after normal download"
+msgstr "không - thoát sau khi tải thường"
+
+#: airnef.pyw:58
+msgid "normal download then realtime"
+msgstr "tải thường rồi chuyển sang thời gian thực"
+
+#: airnef.pyw:59
+msgid "only realtime download"
+msgstr "chỉ tải thời gian thực"
+
+#: airnef.pyw:61
+msgid "generate unique filename"
+msgstr "tạo tên tệp không trùng"
+
+#: airnef.pyw:62
+msgid "overwrite file"
+msgstr "ghi đè tệp"
+
+#: airnef.pyw:63
+msgid "skip file"
+msgstr "bỏ qua tệp"
+
+#: airnef.pyw:64
+msgid "prompt for each file"
+msgstr "hỏi với từng tệp"
+
+#: airnef.pyw:65
+msgid "exit"
+msgstr "thoát"
+
+#: airnef.pyw:67
+msgid "full-sized images/movies"
+msgstr "ảnh/video kích thước đầy đủ"
+
+#: airnef.pyw:68
+msgid "small thumbnails"
+msgstr "ảnh thu nhỏ cỡ nhỏ"
+
+#: airnef.pyw:69
+msgid "large thumbnails"
+msgstr "ảnh thu nhỏ cỡ lớn"
+
+#: airnef.pyw:71
+msgid "first card found"
+msgstr "thẻ đầu tiên tìm thấy"
+
+#: airnef.pyw:72
+msgid "card in slot #1"
+msgstr "thẻ ở khe #1"
+
+#: airnef.pyw:73
+msgid "card in slot #2"
+msgstr "thẻ ở khe #2"
+
+#: airnef.pyw:74
+msgid "both cards (not recommended)"
+msgstr "cả hai thẻ (không khuyến nghị)"
+
+#: airnef.pyw:76
+msgid "oldest images/movies first"
+msgstr "ảnh/video cũ nhất trước"
+
+#: airnef.pyw:77
+msgid "newest images/movies first"
+msgstr "ảnh/video mới nhất trước"
+
+#: airnef.pyw:79
+msgid "All Dates"
+msgstr "Mọi ngày"
+
+#: airnef.pyw:80
+msgid "today"
+msgstr "hôm nay"
+
+#: airnef.pyw:81
+msgid "yesterday"
+msgstr "từ hôm qua"
+
+#: airnef.pyw:82
+msgid "past week"
+msgstr "tuần qua"
+
+#: airnef.pyw:83
+msgid "past month"
+msgstr "tháng qua"
+
+#: airnef.pyw:84
+msgid "past year"
+msgstr "năm qua"
+
+#: airnef.pyw:85
+msgid "custom date range"
+msgstr "khoảng ngày tùy chọn"
+
+#: airnef.pyw:192
+msgid "airnefcmd launch error"
+msgstr "Lỗi khởi chạy airnefcmd"
+
+#: airnef.pyw:192
+msgid "Launch of airnefcmd was unsuccessful"
+msgstr "Không khởi chạy được airnefcmd"
+
+#: airnef.pyw:272
+msgid "No airnefcmd operations have been performed yet."
+msgstr "airnefcmd chưa thực hiện thao tác nào."
+
+#: airnef.pyw:278
+msgid "Error reading airnefcmd report file \"{:s}\". {:s}"
+msgstr "Lỗi khi đọc tệp báo cáo của airnefcmd \"{:s}\". {:s}"
+
+#: airnef.pyw:289
+msgid "It appears airnefcmd was uncleanly terminated. In the future please press <ctrl-c> if you'd like to terminate airnefcmd instead of closing its terminal window. This will allow airnefcmd to perform any necessary cleanup prior to exiting."
+msgstr "Có vẻ airnefcmd đã bị dừng đột ngột. Lần sau, nếu muốn dừng airnefcmd, hãy nhấn <ctrl-c> thay vì đóng cửa sổ terminal của nó, để airnefcmd dọn dẹp cần thiết trước khi thoát."
+
+#: airnef.pyw:300
+msgid "airnef performs its job by launching airnefcmd in a terminal window. By default OSX keeps that terminal window open even after airnefcmd has completed, requiring you to close it manually. You can configure OSX to close the terminal window automatically. Go to the Terminal application and select 'Preferences' in the Terminal menu. Click 'Profiles' at the top and then the \"Shell\" tab in the upper part of the window. Set \"When the shell exits\" option to 'Close if the shell exited cleanly' or 'Close the window'"
+msgstr "airnef làm việc bằng cách chạy airnefcmd trong một cửa sổ terminal. Mặc định OSX giữ cửa sổ đó mở cả khi airnefcmd đã xong, nên bạn phải tự đóng. Bạn có thể cấu hình OSX tự đóng cửa sổ: mở ứng dụng Terminal, chọn 'Preferences' trong menu Terminal, bấm 'Profiles' ở trên cùng rồi chọn thẻ \"Shell\". Đặt tùy chọn \"When the shell exits\" thành 'Close if the shell exited cleanly' hoặc 'Close the window'"
+
+#: airnef.pyw:312 airnef.pyw:272 airnef.pyw:278
+msgid "Transfer Report"
+msgstr "Báo cáo truyền tệp"
+
+#: airnef.pyw:327
+msgid "Close"
+msgstr "Đóng"
+
+#: airnef.pyw:329
+msgid "Copy to Clipboard"
+msgstr "Sao chép vào bộ nhớ tạm"
+
+#: airnef.pyw:508
+msgid "airnef - Wireless download of images and movies from your camera"
+msgstr "airnef - Tải ảnh và video không dây từ máy ảnh"
+
+#: airnef.pyw:543 airnef.pyw:545
+msgid "Loading App Config"
+msgstr "Đọc cấu hình ứng dụng"
+
+#: airnef.pyw:543
+msgid "Could not read app config data. {:s}. Defaults will be used."
+msgstr "Không đọc được dữ liệu cấu hình. {:s}. Sẽ dùng giá trị mặc định."
+
+#: airnef.pyw:545
+msgid "Could not decode app config data. {:s}. Defaults will be used."
+msgstr "Không giải mã được dữ liệu cấu hình. {:s}. Sẽ dùng giá trị mặc định."
+
+#: airnef.pyw:557
+msgid "Saving App Config"
+msgstr "Lưu cấu hình ứng dụng"
+
+#: airnef.pyw:557
+msgid "Could not write app config data. {:s}."
+msgstr "Không ghi được dữ liệu cấu hình. {:s}."
+
+#: airnef.pyw:575
+msgid "airnef Quick Tip"
+msgstr "Mẹo nhanh airnef"
+
+#: airnef.pyw:584 airnef.pyw:641
+msgid "Last Transfer Report"
+msgstr "Báo cáo truyền gần nhất"
+
+#: airnef.pyw:586
+msgid "Exit"
+msgstr "Thoát"
+
+#: airnef.pyw:587
+msgid "File"
+msgstr "Tệp"
+
+#: airnef.pyw:592
+msgid "System default"
+msgstr "Theo hệ thống"
+
+#: airnef.pyw:597
+msgid "Language"
+msgstr "Ngôn ngữ"
+
+#: airnef.pyw:600
+msgid "About"
+msgstr "Giới thiệu"
+
+#: airnef.pyw:601
+msgid "Help"
+msgstr "Trợ giúp"
+
+#: airnef.pyw:607
+msgid ""
+"airnef - Version {:s}\n"
+"\n"
+"Running under Python Version {:d}.{:d}.{:d}\n"
+"\n"
+"Application is licensed under GPL v3\n"
+"\n"
+"Special thanks to Joe FitzPatrick for his work on reverse engineering Nikon's Wifi interface\n"
+"\n"
+"Camera bitmap courtesy of rg1024 at openclipart.org\n"
+"\n"
+"Computer bitmap courtesy of lnasto at openclipart.org\n"
+"\n"
+"Icon courtesy of Paomedia at iconfinder.com, licensed under Creative Commons (Attribution 3.0 Unported)"
+msgstr ""
+"airnef - Phiên bản {:s}\n"
+"\n"
+"Đang chạy trên Python {:d}.{:d}.{:d}\n"
+"\n"
+"Ứng dụng được cấp phép theo GPL v3\n"
+"\n"
+"Cảm ơn Joe FitzPatrick vì công trình dịch ngược giao tiếp WiFi của Nikon\n"
+"\n"
+"Hình máy ảnh: rg1024 trên openclipart.org\n"
+"\n"
+"Hình máy tính: lnasto trên openclipart.org\n"
+"\n"
+"Biểu tượng: Paomedia trên iconfinder.com, giấy phép Creative Commons (Attribution 3.0 Unported)"
+
+#: airnef.pyw:622
+msgid "< Back"
+msgstr "< Quay lại"
+
+#: airnef.pyw:625
+msgid "Camera IP address:"
+msgstr "Địa chỉ IP máy ảnh:"
+
+#: airnef.pyw:630
+msgid "Realtime download:"
+msgstr "Tải thời gian thực:"
+
+#: airnef.pyw:635
+msgid "Logging:"
+msgstr "Ghi log:"
+
+#: airnef.pyw:680
+msgid "Save to"
+msgstr "Lưu vào"
+
+#: airnef.pyw:683
+msgid "Output directory:"
+msgstr "Thư mục lưu:"
+
+#: airnef.pyw:689
+msgid "Browse..."
+msgstr "Chọn..."
+
+#: airnef.pyw:691
+msgid "If file exists:"
+msgstr "Nếu tệp đã có:"
+
+#: airnef.pyw:697
+msgid "Skip images/movies you've previously downloaded"
+msgstr "Bỏ qua ảnh/video đã tải trước đây"
+
+#: airnef.pyw:702
+msgid "Start Download"
+msgstr "Bắt đầu tải"
+
+#: airnef.pyw:708
+msgid "Select folder to download images/movies into"
+msgstr "Chọn thư mục để tải ảnh/video vào"
+
+#: airnef.pyw:748
+msgid "How would you like to choose which images to download?"
+msgstr "Bạn muốn chọn ảnh cần tải theo cách nào?"
+
+#: airnef.pyw:749
+msgid "Pick the images on the camera itself, or set criteria such as file type and date on this computer."
+msgstr "Chọn ảnh ngay trên máy ảnh, hoặc đặt tiêu chí như loại tệp và ngày chụp trên máy tính này."
+
+#: airnef.pyw:752
+msgid "Select in Camera"
+msgstr "Chọn trên máy ảnh"
+
+#: airnef.pyw:753
+msgid "Download the images you've marked for upload on the camera (Nikon)."
+msgstr "Tải các ảnh bạn đã đánh dấu để gửi trên máy ảnh (Nikon)."
+
+#: airnef.pyw:754
+msgid "Select on Computer"
+msgstr "Chọn trên máy tính"
+
+#: airnef.pyw:755
+msgid "Download by file type, capture date, folder and card slot (Nikon, Canon, Sony)."
+msgstr "Tải theo loại tệp, ngày chụp, thư mục và khe thẻ (Nikon, Canon, Sony)."
+
+#: airnef.pyw:773
+msgid "Download images you've selected in the camera"
+msgstr "Tải các ảnh đã chọn trên máy ảnh"
+
+#: airnef.pyw:774
+msgid "airnef downloads the images on the camera's transfer list, then removes them from the list."
+msgstr "airnef tải các ảnh trong danh sách gửi của máy ảnh, rồi xóa chúng khỏi danh sách."
+
+#: airnef.pyw:781
+msgid "On the camera"
+msgstr "Trên máy ảnh"
+
+#: airnef.pyw:783
+msgid "Turn your camera on and select which images you'd like to upload. This may be under the camera's WiFi menu as \"Select to send to smart device\" or in the playback menu, depending on the camera model."
+msgstr "Bật máy ảnh và chọn các ảnh muốn gửi. Tùy đời máy, tùy chọn này có thể nằm trong menu WiFi (\"Select to send to smart device\") hoặc trong menu xem lại ảnh."
+
+#: airnef.pyw:785
+msgid "Make sure your camera's WiFi is on. The camera may sometimes disable it without direction from the user."
+msgstr "Đảm bảo WiFi của máy ảnh đang bật. Đôi khi máy ảnh tự tắt WiFi mà không cần người dùng thao tác."
+
+#: airnef.pyw:786
+msgid "Join your camera's WiFi network on your computer. It will have a name prefixed with \"Nikon\", such as \"Nikon_WU2_0090B6245A45\"."
+msgstr "Kết nối máy tính vào mạng WiFi của máy ảnh. Tên mạng bắt đầu bằng \"Nikon\", ví dụ \"Nikon_WU2_0090B6245A45\"."
+
+#: airnef.pyw:811
+msgid "Set criteria for which images/movies to download"
+msgstr "Đặt tiêu chí cho ảnh/video cần tải"
+
+#: airnef.pyw:812
+msgid "Only files matching every criterion are downloaded."
+msgstr "Chỉ tải các tệp thỏa mãn mọi tiêu chí."
+
+#: airnef.pyw:822
+msgid "What to download"
+msgstr "Tải gì"
+
+#: airnef.pyw:823
+msgid "Download:"
+msgstr "Tải:"
+
+#: airnef.pyw:827
+msgid "File types:"
+msgstr "Loại tệp:"
+
+#: airnef.pyw:834
+msgid "More:"
+msgstr "Thêm:"
+
+#: airnef.pyw:844
+msgid "Which images"
+msgstr "Ảnh nào"
+
+#: airnef.pyw:845
+msgid "Capture date:"
+msgstr "Ngày chụp:"
+
+#: airnef.pyw:850
+msgid "From:"
+msgstr "Từ:"
+
+#: airnef.pyw:854
+msgid "To:"
+msgstr "Đến:"
+
+#: airnef.pyw:858
+msgid "Format: mm/dd/yy or mm/dd/yy hh:mm:ss"
+msgstr "Định dạng: mm/dd/yy hoặc mm/dd/yy hh:mm:ss"
+
+#: airnef.pyw:863
+msgid "Media card:"
+msgstr "Thẻ nhớ:"
+
+#: airnef.pyw:867
+msgid "Download order:"
+msgstr "Thứ tự tải:"
+
+#: airnef.pyw:877
+msgid "Advanced"
+msgstr "Nâng cao"
+
+#: airnef.pyw:879
+msgid "Additional arguments:"
+msgstr "Tham số bổ sung:"
+
+#: airnef.pyw:892
+msgid "Preview File List"
+msgstr "Xem trước danh sách tệp"
+
+#: airnef.pyw:908
+msgid "Selection Issue"
+msgstr "Lỗi lựa chọn"
+
+#: airnef.pyw:908
+msgid "At least one file type must be checked or entered, otherwise there won't be anything to download."
+msgstr "Phải chọn hoặc nhập ít nhất một loại tệp, nếu không sẽ không có gì để tải."
+
+#: airnef.pyw:913
+msgid "Invalid Start Date"
+msgstr "Ngày bắt đầu không hợp lệ"
+
+#: airnef.pyw:913
+msgid "Invalid End Date"
+msgstr "Ngày kết thúc không hợp lệ"
+
+#: airnef.pyw:915
+msgid "The date \"{:s}\" is formatted incorrectly or is not a valid date/time. It must be formatted as mm/dd/yy or mm/dd/yy hh:mm:ss (including leading zeros)."
+msgstr "Ngày \"{:s}\" sai định dạng hoặc không phải ngày/giờ hợp lệ. Phải có dạng mm/dd/yy hoặc mm/dd/yy hh:mm:ss (kể cả số 0 ở đầu)."

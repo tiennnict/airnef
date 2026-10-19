@@ -2,7 +2,7 @@
 
 > Docs: [README](../README.md) · [Installation](installation.md) · [Camera setup](camera-setup.md) · [User guide](user-guide.md) · [Renaming engine](renaming-engine.md) · [Command line](command-line-reference.md) · [FAQ](faq.md)
 
-Airnef allows you to customize the names of directories and filenames for the images you download via a simple, mini-scripting language, accessible via the the --dirnamespec and --filenamespec command line options. You can enter these options in the 'Additional Args' field of the GUI. Below are some examples to help get you started.
+Airnef allows you to customize the names of directories and filenames for the images you download via a simple, mini-scripting language, accessible via the the --dirnamespec and --filenamespec command line options. You can enter these options in the 'Additional arguments' field of the GUI. Below are some examples to help get you started.
 
 Include the model of the camera in the downloaded filename.  
 Sample Output: D7200_DSC_0119.NEF  
