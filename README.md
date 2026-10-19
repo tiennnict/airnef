@@ -1,5 +1,7 @@
 # Airnef
 
+[![CI](https://github.com/tiennnict/airnef/actions/workflows/ci.yml/badge.svg)](https://github.com/tiennnict/airnef/actions/workflows/ci.yml)
+
 Wireless file transfer for PTP/MTP-equipped cameras (Nikon, Canon, Sony) over WiFi (PTP/IP, port 15740).
 
 ## Description

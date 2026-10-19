@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        python-version: ["3.12", "3.15"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install dependencies
+        run: uv sync --python ${{ matrix.python-version }}
+      - name: Install xvfb (Linux, for the GUI smoke test)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+      - name: Test
+        if: runner.os != 'Linux'
+        run: uv run pytest
+      - name: Test (under xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a uv run pytest
+      - name: Check translations are complete
+        run: uv run tools/extract_messages.py --check
