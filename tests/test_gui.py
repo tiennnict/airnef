@@ -21,6 +21,7 @@ def load_gui():
     return module
 
 
+pytest.importorskip('tkinter', reason='tkinter is not available in this Python build')
 gui = load_gui()
 
 
