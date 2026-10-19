@@ -95,3 +95,30 @@ def test_linked_list_keeps_sorted_stable_order():
     assert ll.tail()._key == 5 and ll.count() == 6
     ll.remove(ll.head())
     assert ll.head()._key == 1 and ll.head().llPrev() is None
+
+
+def test_json_object_cache_is_reused_on_next_session(tmp_path):
+    cam = make_camera()
+    try:
+        assert run_airnefcmd(cam, tmp_path, '--action', 'listfiles').returncode == 0
+        cache_files = list((tmp_path / 'appdata').glob('*-objinfocache.json'))
+        assert len(cache_files) == 1
+        cam.ops_log.clear()
+        result = run_airnefcmd(cam, tmp_path, '--action', 'listfiles')
+        assert result.returncode == 0 and '5 from object cache' in result.stdout
+        # only the two folders are re-read to validate the cache
+        assert len([op for op, _ in cam.ops_log if op == GET_OBJECT_INFO]) == 2
+    finally:
+        cam.close()
+
+
+def test_corrupt_json_cache_is_discarded(tmp_path):
+    cam = make_camera()
+    try:
+        assert run_airnefcmd(cam, tmp_path, '--action', 'listfiles').returncode == 0
+        cache_file = next((tmp_path / 'appdata').glob('*-objinfocache.json'))
+        cache_file.write_text('{not json', encoding='utf-8')
+        result = run_airnefcmd(cam, tmp_path, '--action', 'listfiles')
+        assert result.returncode == 0 and '0 from object cache' in result.stdout
+    finally:
+        cam.close()

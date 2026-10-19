@@ -11,7 +11,7 @@
 #############################################################################
 #
 
-import pickle
+import json
 import argparse
 import mtpwifi
 from mtpdef import *
@@ -26,7 +26,6 @@ import math
 import traceback
 import platform
 import socket
-import hashlib
 from dlinkedlist import *
 from collections import namedtuple
 from applog import *
@@ -1471,188 +1470,112 @@ def deleteFileIgnoreErrors(filename):
 #
 # generates and saves a cache of all the MtpObjectInfo(s) we've retrieved this session.
 # this is done to avoid having to re-retrieve these same MtpObjectInfo instances from
-# the camera on subsequent sessions. we generate the cache by serializing the 
-# MtpObjectInfo instances (and handle instances) via python's pickle's module. 
-#		
+# the camera on subsequent sessions. the cache is a versioned JSON document: unlike the
+# pickle format used by v1.x it can't execute code when loaded, doesn't depend on module
+# names (the old frozen-OSX __main__ vs airnefcmd mismatch) and can be inspected by hand.
+# the file is written to a temporary name and renamed so a crash never leaves half a cache
+#
+MTP_OBJ_CACHE_FORMAT_VERSION = 2		# v1 was the pickle-based "-objinfocache" file
 MtpObjectInfoCacheTuple = namedtuple('MtpObjectInfoCacheTuple', 'mtpObjectInfoList objHandlesList timeSavedEpoch')
+
+def getMtpObjectInfoCacheFilename():
+	return g.cameraLocalMetadataPathAndRootName + "-objinfocache.json"
+
 def saveMtpObjectsToDiskCache():
 
 	if g.args['mtpobjcache'] == 'disabled' or g.args['mtpobjcache'] == 'readonly':
-		return None	
-	
-	mtpObjectInfoCacheFilename = g.cameraLocalMetadataPathAndRootName + "-objinfocache"
+		return None
 
-	#
-	# build mtpObjectInfoList[] and objHandlesList[] from the mtpObject entries that were
-	# inserted by buildMtpObjects(). I'm rebuilding the lists here rather than using the
-	# locally-available lists in buildMtpObjects() because I wanted this routine to
-	# be callable in the future outside of just buildMtpObjects()
-	#
-	mtpObjectInfoList = []
-	objHandlesList = []
-	countObjs = MtpObject.getCount()
+	deleteFileIgnoreErrors(g.cameraLocalMetadataPathAndRootName + "-objinfocache")	# obsolete pickle cache from airnef v1.x
+
+	mtpObjectInfoCacheFilename = getMtpObjectInfoCacheFilename()
+	entries = []
 	mtpObject = MtpObject.getOldest()
-	for nObjInex in range(0, countObjs):
-		mtpObjectInfoList.append(mtpObject.mtpObjectInfo)
-		objHandlesList.append(mtpObject.mtpObjectHandle)
+	while mtpObject:
+		entries.append([mtpObject.mtpObjectHandle] + list(mtpObject.mtpObjectInfo))
 		mtpObject = mtpObject.getNewer()
-		
-	#
-	# generate the named-tuple (structure) that we'll be serializing to disk. this tuple
-	# contains the mtpObjectInfoList[] and objHandlesList[] lists generated above, plus
-	# a timestamp that can be used to evaluate the age of the cache in future invocations
-	#
-	mtpObjectInfoCacheTuple = MtpObjectInfoCacheTuple(mtpObjectInfoList, objHandlesList, time.time())
+	document = { 'formatVersion' : MTP_OBJ_CACHE_FORMAT_VERSION, 'timeSavedEpoch' : time.time(),
+		'fields' : ['handle'] + list(MtpObjectInfoTuple._fields), 'objects' : entries }
 
-	#
-	# build a hash of the tuple, which will be saved in the serialization data with the tuple. this
-	# hash will allow us to validate the integirty of the serialized data when we use load it
-	# on subsequent invocations to use as a cache. this validation is to protect against:
-	#
-	# -> Corruption of the cache data if the user inadvertently modifies the file holding the data
-	# -> Future changes to the content of the cache data (a version number would work but since we're already generating the hash....)
-	# -> Future changes to the python pickle implementation or the algorithm we use
-	#
-	# when loadMtpObjectsInfoCache() load this serialization data he generates a hash of the loaded
-	# data and compares it against the hash that was generated+saved here
-	#
-	mtpObjectInfoCacheAsPickleBytes = pickle.dumps(mtpObjectInfoCacheTuple)	# generate byte array of the tuple
-	hashOfMtpObjectInfoCacheTuple = hashlib.sha512(mtpObjectInfoCacheAsPickleBytes).hexdigest()	# generate a SHA-512 hash digest, represented in hex ASCII
-
-	#
-	# write the serialization data. if any error occurs, either I/O error or pickling/code error,
-	# we close the file and delete it, to prevent any partially-written cache data from lingering
-	# on disk. any error is treated as benign since the cache is not essential to the operation
-	# of the program - it's only a performance optimization
-	#
+	tempFilename = mtpObjectInfoCacheFilename + ".tmp"
 	try:
-		fMtpObjectCache = open(mtpObjectInfoCacheFilename, "wb")
-		fMtpObjectCache.write(mtpObjectInfoCacheAsPickleBytes)			# write the tuple. note we're using the already-pickled data instead of calling dump(). this is for performance
-		pickle.dump(hashOfMtpObjectInfoCacheTuple, fMtpObjectCache)		# write the SHA-512 hash digest
-		fMtpObjectCache.close()
-	except IOError as e:
-		if fMtpObjectCache:
-			fMtpObjectCache.close()				
-		applog_e("I/O error writing obj hash to {:s}, cache will not be available next session: {:s}".format(mtpObjectInfoCacheFilename, str(e)))
-		deleteFileIgnoreErrors(mtpObjectInfoCacheFilename)	# delete cache in case some (partial) data was written before exception
-	except (ImportError, pickle.PickleError, ValueError, AttributeError):
-		# ImportError if the serialized data refers to a module that doesn't exist (changed module names between versions)
-		# PickleError if the decoding of the serialized data failed (corrupt data, modified format between versions, etc...
-		# ValueError if importing from different pickle protoocl
-		applog_d("Exception serializing obj cache:\n")
-		applog_d(traceback.format_exc())	
-		if fMtpObjectCache:
-			fMtpObjectCache.close()				
-		applog_e("Non-I/O error generating obj hash to {:s}, cache will not be saved.".format(mtpObjectInfoCacheFilename))
-		deleteFileIgnoreErrors(mtpObjectInfoCacheFilename)	# delete cache in case some (partial) data was written before exception
-	applog_d("Saved {:d} MTP objects to disk cache".format(countObjs))
+		with open(tempFilename, "w", encoding='utf-8') as f:
+			json.dump(document, f, ensure_ascii=False, separators=(',', ':'))
+		os.replace(tempFilename, mtpObjectInfoCacheFilename)
+	except (OSError, TypeError, ValueError) as e:
+		applog_e("Error writing MTP object cache {:s}, cache will not be available next session: {:s}".format(mtpObjectInfoCacheFilename, str(e)))
+		deleteFileIgnoreErrors(tempFilename)
+		return None
+	applog_d("Saved {:d} MTP objects to disk cache".format(len(entries)))
 
 #
 # loads the MtpObjectInfo cache info that was saved to disk on a previous session by
-# saveMtpObjectsToDiskCache(). if the cache is loaded successfully and passes the
-# hashed integrity check then a MtpObjectInfoCacheTuple is returned. note that 
-# even if the cache is loaded successfully the caller must perform his own coherency
-# check to make sure the cache contents are valid vs the objects on the camera. 
+# saveMtpObjectsToDiskCache(). if the cache is loaded successfully and is structurally
+# valid then a MtpObjectInfoCacheTuple is returned. note that even if the cache is loaded
+# successfully the caller must perform his own coherency check to make sure the cache
+# contents are valid vs the objects on the camera.
 #
 def loadMtpObjectInfoCacheFromDisk():
 
 	if g.args['mtpobjcache'] == 'disabled':
-		return None	
-
-	mtpObjectInfoCacheFilename = g.cameraLocalMetadataPathAndRootName + "-objinfocache"
-	
-	#
-	# read  the serialization data. if any error occurs, either I/O error or pickling/code error 
-	# we close the file. we only delete the file if the hash is corrupt; that way the cache will
-	# still be available on future invocations in case the I/O error we got here was transitory (even
-	# though the file is about to get rewritten anyway once we fetch the objects from the camera and
-	# later call saveMtpObjectsToDiskCache). any error is treated as benign since the cache is not
-	# essential to the operation of the program - it's only a performance optimization
-	#	
-	if os.path.exists(mtpObjectInfoCacheFilename):
-		if g.args['mtpobjcache'] == 'writeonly':
-			applog_v("Ignoring found MTP object cache file per user configuration")
-			return None
-		fMtpObjectCache = None # needed so that exception handlers can know whether the file was opened before the exception and thus needs closing
-		try:
-			fMtpObjectCache = open(mtpObjectInfoCacheFilename, "rb")
-			mtpObjectInfoCacheTuple = pickle.load(fMtpObjectCache)
-			hashOfMtpObjectInfoCacheTuple_Loaded = pickle.load(fMtpObjectCache)
-			fMtpObjectCache.close()
-			
-			mtpObjectInfoCacheAsPickleBytes = pickle.dumps(mtpObjectInfoCacheTuple)
-			hashOfMtpObjectInfoCacheTuple_Calculated = hashlib.sha512(mtpObjectInfoCacheAsPickleBytes).hexdigest()
-		except IOError as e:
-			if fMtpObjectCache:
-				fMtpObjectCache.close()				
-			applog_e("I/O error reading obj hash from {:s}: {:s}".format(mtpObjectInfoCacheFilename, str(e)))
-			return None
-		except:
-			# ImportError if the serialized data refers to a module that doesn't exist (changed module names between versions)
-			# PickleError if the decoding of the serialized data failed (corrupt data, modified format between versions, etc...
-			# ValueError if importing from different pickle protocol
-			# AttributeError if the module name associated with the class/type objects being deserialized can't be found/mismatch
-			# plus any others that the pickle case may throw - need a generic "except" in case I missed any, otherwise we'll
-			# ungracefully throw an exception that terminates the app for what should be handled as discarded-cache case
-			
-			#
-			# note: in v1.1 we moved the appdata for OSX out of app bundle and into user's home directory. this means the data
-			# will be shared between the frozen OSX app and any non-frozen version of airnef run on the same machine (ie, running
-			# airnef from source instead of OSX app). in the frozen app this module runs as airnefcmd (__name__ == airnefcmd) due
-			# to the OSX wrapper importing it and executing it rather than airnefcmd being the main execution module,
-			# whereas in all other cases on other platforms and OSX non-frozen this module runs as __main__. this v1.1 change causes
-			# the OSX frozen app's picke load of the objcache to fail with an AttributeError, because the top-level module
-			# associated with 'MtpObjectInfoCacheTuple' will be different (c__main__ vs cairnefcmd). one fix would be to move
-			# the defintion of 'MtpObjectInfoCacheTuple' into its own module, that way the module in the pickle data would be 
-			# the same no matter how airnefcmd was run. the problem with this is that the pickle data wouldn't be backwards
-			# compatible with v1.0, which is fine except v1.0 wasn't catching the 'AttributeError' exception for the pickle load,
-			# which means it'll throw an uncaptured exception rather than gracefully discarding the cache and recreate it. for
-			# this reason I'm going to keep the situation as-is and let the OSX frozen vs non-frozen executions recreate the
-			# cache upon experiencing the AttributeError, since that's gracefully handled now in v1.1. plus I don't expect
-			# many users to be running both OSX frozen and non-frozen, and esp not switching between them enough to make the
-			# cache recreation a (performance) issue
-			#
-			applog_d("Exception deserializing obj cache:\n")
-			applog_d(traceback.format_exc())	
-			if fMtpObjectCache:
-				fMtpObjectCache.close()				
-			applog_e("Non-I/O error reading obj hash from {:s}. Cache will be discarded. (err={:s})".format(mtpObjectInfoCacheFilename, str(sys.exc_info()[0])))
-			deleteFileIgnoreErrors(mtpObjectInfoCacheFilename) # delete the potentially corrupt cache
-			return None
-
-		#
-		# cache was read successfully. verify its integrity
-		#
-		if hashOfMtpObjectInfoCacheTuple_Loaded != hashOfMtpObjectInfoCacheTuple_Calculated:			
-			applog_e("Obj cache in {:s} is corrupt - will delete and ignore".format(mtpObjectInfoCacheFilename))
-			fMtpObjectCache.close()
-			deleteFileIgnoreErrors(mtpObjectInfoCacheFilename)	# delete the corrupt cache
-			return None
-			
-		#
-		# have valid cache
-		#
-		cacheAgeSeconds = secondsElapsed(mtpObjectInfoCacheTuple.timeSavedEpoch)
-		
-		# display cache info (verbose/debug)
-		applog_v("MTP Object cache has {:d} objects, age is {:s}".\
-			format(len(mtpObjectInfoCacheTuple.mtpObjectInfoList), str(datetime.timedelta(seconds=cacheAgeSeconds))))
-		if isDebugLog():
-			applog_d("MTP object cache entries [count={:d}]".format(len(mtpObjectInfoCacheTuple.mtpObjectInfoList)))
-			for i in range(len(mtpObjectInfoCacheTuple.mtpObjectInfoList)):
-				applog_d("Entry {:4d}, handle = 0x{:08x}: {:s}".format(i, mtpObjectInfoCacheTuple.objHandlesList[i], str(mtpObjectInfoCacheTuple.mtpObjectInfoList[i])))
-				
-		#
-		# ignore (discard) cache if its older than the max configured age
-		#
-		if g.args['mtpobjcache_maxagemins'] != 0 and cacheAgeSeconds/60 >= g.args['mtpobjcache_maxagemins']:
-			applog_v("Discarding MTP object cache due to age (max age is {:s})".format(str(datetime.timedelta(minutes=g.args['mtpobjcache_maxagemins']))))
-			return None
-			
-		return mtpObjectInfoCacheTuple
-			
-	else:
 		return None
+
+	mtpObjectInfoCacheFilename = getMtpObjectInfoCacheFilename()
+	if not os.path.exists(mtpObjectInfoCacheFilename):
+		return None
+	if g.args['mtpobjcache'] == 'writeonly':
+		applog_v("Ignoring found MTP object cache file per user configuration")
+		return None
+
+	#
+	# any problem reading or validating the file just means there is no cache this session -
+	# the cache is only a performance optimization. a structurally invalid file is deleted
+	#
+	try:
+		with open(mtpObjectInfoCacheFilename, encoding='utf-8') as f:
+			document = json.load(f)
+	except OSError as e:
+		applog_e("I/O error reading MTP object cache {:s}: {:s}".format(mtpObjectInfoCacheFilename, str(e)))
+		return None
+	except ValueError as e:
+		applog_e("MTP object cache {:s} is corrupt - will delete and ignore".format(mtpObjectInfoCacheFilename))
+		deleteFileIgnoreErrors(mtpObjectInfoCacheFilename)
+		return None
+	try:
+		if document['formatVersion'] != MTP_OBJ_CACHE_FORMAT_VERSION or document['fields'] != ['handle'] + list(MtpObjectInfoTuple._fields):
+			raise ValueError("unsupported cache format")
+		objHandlesList = []
+		mtpObjectInfoList = []
+		for entry in document['objects']:
+			objHandlesList.append(int(entry[0]))
+			mtpObjectInfoList.append(MtpObjectInfoTuple(*entry[1:]))
+		mtpObjectInfoCacheTuple = MtpObjectInfoCacheTuple(mtpObjectInfoList, objHandlesList, float(document['timeSavedEpoch']))
+	except (KeyError, TypeError, ValueError) as e:
+		applog_v("Discarding MTP object cache {:s}: {:s}".format(mtpObjectInfoCacheFilename, str(e)))
+		deleteFileIgnoreErrors(mtpObjectInfoCacheFilename)
+		return None
+
+	#
+	# have valid cache
+	#
+	cacheAgeSeconds = secondsElapsed(mtpObjectInfoCacheTuple.timeSavedEpoch)
+
+	# display cache info (verbose/debug)
+	applog_v("MTP Object cache has {:d} objects, age is {:s}".\
+		format(len(mtpObjectInfoCacheTuple.mtpObjectInfoList), str(datetime.timedelta(seconds=cacheAgeSeconds))))
+	if isDebugLog():
+		applog_d("MTP object cache entries [count={:d}]".format(len(mtpObjectInfoCacheTuple.mtpObjectInfoList)))
+		for i in range(len(mtpObjectInfoCacheTuple.mtpObjectInfoList)):
+			applog_d("Entry {:4d}, handle = 0x{:08x}: {:s}".format(i, mtpObjectInfoCacheTuple.objHandlesList[i], str(mtpObjectInfoCacheTuple.mtpObjectInfoList[i])))
+
+	#
+	# ignore (discard) cache if its older than the max configured age
+	#
+	if g.args['mtpobjcache_maxagemins'] != 0 and cacheAgeSeconds/60 >= g.args['mtpobjcache_maxagemins']:
+		applog_v("Discarding MTP object cache due to age (max age is {:s})".format(str(datetime.timedelta(minutes=g.args['mtpobjcache_maxagemins']))))
+		return None
+
+	return mtpObjectInfoCacheTuple
 
 
 #
