@@ -84,6 +84,9 @@ MTP_OP_GetObjectPropList		= 0x9805
 # Canon-unique codes
 MTP_OP_Canon_GetDevicePropValue = 0x9127
 MTP_OP_Canon_SetDevicePropValue = 0x9110
+MTP_OP_GetFilesystemManifest	= 0x1023	# PTP v1.1 (ISO 15740:2013 10.5.35)
+MTP_OP_GetPartialObject64		= 0x95c1	# MTP extension: 64-bit offset variant of GetPartialObject
+MTP_OP_Nikon_GetPartialObjectEx	= 0x9431	# Nikon: 64-bit offset/size variant of GetPartialObject
 # Sony-unique codes
 MTP_OP_Sony_Set_Request			= 0x9280	# unclear exactly what these are but they appear to be wrappers for Sony-unique commands contained within
 MTP_OP_Sony_Get_Request			= 0x9281	# evey 'set' request must be followed by a 'get' request, otherwise camera returns busy for subsequent set requests
@@ -157,7 +160,10 @@ MtpOpDescDictionary = {\
 	MTP_OP_Canon_SetDevicePropValue : 'MTP_OP_Canon_SetDevicePropValue',
 	MTP_OP_Canon_GetDevicePropValue : 'MTP_OP_Canon_GetDevicePropValue',
 	MTP_OP_Sony_Set_Request			: 'MTP_OP_Sony_Set_Request',	
-	MTP_OP_Sony_Get_Request			: 'MTP_OP_Sony_Get_Request'
+	MTP_OP_Sony_Get_Request			: 'MTP_OP_Sony_Get_Request',
+	MTP_OP_GetFilesystemManifest	: 'MTP_OP_GetFilesystemManifest',
+	MTP_OP_GetPartialObject64		: 'MTP_OP_GetPartialObject64',
+	MTP_OP_Nikon_GetPartialObjectEx	: 'MTP_OP_Nikon_GetPartialObjectEx'
 }
 def getMtpOpDesc(mtpOp):
 	if mtpOp in MtpOpDescDictionary:
@@ -243,7 +249,10 @@ MtpOpDataDirections = {\
 	MTP_OP_Canon_SetDevicePropValue : MTP_DATA_DIRECTION_HOST_TO_CAMERA,
 	MTP_OP_Canon_GetDevicePropValue : MTP_DATA_DIRECTION_CAMERA_TO_HOST,
 	MTP_OP_Sony_Set_Request			: MTP_DATA_DIRECTION_HOST_TO_CAMERA,
-	MTP_OP_Sony_Get_Request			: MTP_DATA_DIRECTION_CAMERA_TO_HOST
+	MTP_OP_Sony_Get_Request			: MTP_DATA_DIRECTION_CAMERA_TO_HOST,
+	MTP_OP_GetFilesystemManifest	: MTP_DATA_DIRECTION_CAMERA_TO_HOST,
+	MTP_OP_GetPartialObject64		: MTP_DATA_DIRECTION_CAMERA_TO_HOST,
+	MTP_OP_Nikon_GetPartialObjectEx	: MTP_DATA_DIRECTION_CAMERA_TO_HOST
 }
 def getMtpOpDataDirection(mtpOp):
 	if mtpOp in MtpOpDataDirections:
@@ -974,3 +983,27 @@ MtpObjectInfoTuple = namedtuple('MtpObjectInfoTuple', 'storageId objectFormat pr
 						associationDesc sequenceNumber filename \
 						captureDateStr modificationDateStr')
 						
+#
+# MTP object property codes (used with GetObjectPropList/GetObjectPropValue)
+#
+MTP_OBJPROP_StorageID				= 0xdc01
+MTP_OBJPROP_ObjectFormat			= 0xdc02
+MTP_OBJPROP_ProtectionStatus		= 0xdc03
+MTP_OBJPROP_ObjectSize				= 0xdc04	# UINT64
+MTP_OBJPROP_AssociationType			= 0xdc05
+MTP_OBJPROP_AssociationDesc			= 0xdc06
+MTP_OBJPROP_ObjectFileName			= 0xdc07
+MTP_OBJPROP_DateCreated				= 0xdc08
+MTP_OBJPROP_DateModified			= 0xdc09
+MTP_OBJPROP_ParentObject			= 0xdc0b
+
+#
+# PTP datatype codes and the byte size of each scalar type
+#
+PTP_DATATYPE_STRING					= 0xffff
+PTP_DATATYPE_ARRAY_FLAG				= 0x4000
+PtpScalarDatatypeSizes = { 0x0001 : 1, 0x0002 : 1, 0x0003 : 2, 0x0004 : 2, 0x0005 : 4, 0x0006 : 4,
+	0x0007 : 8, 0x0008 : 8, 0x0009 : 16, 0x000a : 16 }
+PtpScalarDatatypeSigned = { 0x0001, 0x0003, 0x0005, 0x0007, 0x0009 }
+
+MTP_SIZE_UNKNOWN_32BIT					= 0xffffffff	# ObjectCompressedSize value used for objects of 4GB or larger

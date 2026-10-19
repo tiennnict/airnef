@@ -18,62 +18,59 @@ class LinkedList():
 		self._tail = None
 		self._countObjs = 0
 	def insert(self, objIns):
-		objInList = self._head
-		if not objInList:
-			# we're the first obj in list
-			self._head = objIns
-			self._tail = objIns
-			# already set in LinkedListObj()__init__: objIns._prev = None
-			# already set in LinkedListObj()__init__: objIns._next = None
-		else:			
-			while objInList:
-				if objIns._key < objInList._key:
-					objIns._next = objInList
-					objIns._prev = objInList._prev
-					if objInList._prev:
-						objInList._prev._next = objIns
-					objInList._prev = objIns
-					if objIns._prev == None:
-						self._head = objIns
-					elif objIns._next == None:
-						self._tail = tail
-					break;
-				objInList = objInList._next
-			if not objInList:
-				# no key smaller than objIns, insert at end
-				# already set in LinkedListObj()__init__: objIns._next = None
-				objIns._prev = self._tail
-				self._tail._next = objIns
+		#
+		# keeps the list sorted by key; objects with equal keys stay in insertion order. the
+		# scan starts at the tail because objects normally arrive roughly oldest-to-newest
+		# (and realtime captures are always newest), which makes the common case O(1) instead
+		# of walking the whole list for every insert
+		#
+		objInList = self._tail
+		while objInList and objIns._key < objInList._key:
+			objInList = objInList._prev
+		if objInList is None:
+			# smallest key - insert at head
+			objIns._prev = None
+			objIns._next = self._head
+			if self._head:
+				self._head._prev = objIns
+			else:
 				self._tail = objIns
+			self._head = objIns
+		else:
+			# insert after objInList
+			objIns._prev = objInList
+			objIns._next = objInList._next
+			if objInList._next:
+				objInList._next._prev = objIns
+			else:
+				self._tail = objIns
+			objInList._next = objIns
 		self._countObjs += 1
 	def remove(self, objRem):
-		if objRem == self._head:
-			self._head = objRem._next
-			if not self._head:
-				# we are only obj in list
-				self._tail = None
-		else:
+		if objRem._prev:
 			objRem._prev._next = objRem._next
-			if objRem._next != None:
-				objRem._next._prev = objRem._prev
-			else:
-				# we were in the last obj position in list
-				self._tail = None
+		else:
+			self._head = objRem._next
+		if objRem._next:
+			objRem._next._prev = objRem._prev
+		else:
+			self._tail = objRem._prev
+		objRem._prev = objRem._next = None
 		self._countObjs -= 1
 	def head(self):
 		return self._head
-	def tail(self):		
+	def tail(self):
 		return self._tail
 	def count(self):
 		return self._countObjs
 	def dump(self):
-		obj = self.getHead()
+		obj = self.head()
 		i = 0
 		while obj:
 			print("{:d}, {}: key={}".format(i, obj, obj._key))
-			obj = obj.getNext()
+			obj = obj.llNext()
 			i += 1
-			
+
 class LinkedListObj():
 	def __init__(self, key, linkedList=None):
 		self._key = key

@@ -32,6 +32,7 @@ from collections import namedtuple
 from applog import *
 import rename
 import ssdp
+import mtpbulk
 import subprocess
 
 #
@@ -651,6 +652,7 @@ def processCmdLine():
 	parser.add_argument('--retrycount', help=argparse.SUPPRESS, type=int, default=sys.maxsize, required=False)
 	parser.add_argument('--retrydelaysecs', help=argparse.SUPPRESS, type=int, default=5, required=False)
 	parser.add_argument('--printstackframes', help=argparse.SUPPRESS, type=str.lower, choices=['no', 'yes'], default='no', required=False)
+	parser.add_argument('--objinfomethod', type=str.lower, choices=['auto', 'proplist', 'manifest', 'perobject'], help=argparse.SUPPRESS, default='auto', required=False)
 	parser.add_argument('--mtpobjcache', type=str.lower, choices=['enabled', 'writeonly', 'readonly', 'verify', 'disabled'], help=argparse.SUPPRESS, default='enabled', required=False)	
 	parser.add_argument('--mtpobjcache_maxagemins', help=argparse.SUPPRESS, type=int, default=0, required=False) # default is 0=indefinite (never invalidate based on age)
 	parser.add_argument('--maxgetobjtransfersizekb', help=argparse.SUPPRESS, type=int, default=DEFAULT_MAX_KB_PER_GET_OBJECT_REQUEST, required=False)	
@@ -1896,6 +1898,83 @@ def createMtpObjectsFromHandleList(objHandlesList, createMtpObjectStatsStruct=No
 		
 
 #
+# retrieves the info for every object on the camera in a single transaction, using
+# GetObjectPropList (MTP) or GetFilesystemManifest (PTP 1.1) when the camera supports them.
+# this replaces one GetObjectInfo round trip per object, the slowest part of starting a
+# session. returns ({ handle : MtpObjectInfoTuple }, description) or (None, None) if
+# neither is supported or allowed, or the camera rejects the request
+#
+def fetchMtpObjectInfosInBulk():
+	method = g.args['objinfomethod']
+	if method == 'perobject' or g.args['mtpobjcache'] == 'verify':
+		return (None, None)
+	operationsSupported = g.mtpDeviceInfo.operationsSupportedSet
+	defaultStorageId = g.storageId if g.storageId != MTP_STORAGEID_ALL_CARDS else 0
+	attempts = []
+	if method in ('auto', 'proplist') and (MTP_OP_GetObjectPropList in operationsSupported or method == 'proplist'):
+		attempts.append(('GetObjectPropList', MTP_OP_GetObjectPropList,
+			struct.pack('<5I', 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0xFFFFFFFF),	# all objects, all formats, all properties, all depths
+			lambda data : mtpbulk.objectInfosFromPropList(data, defaultStorageId)))
+	if method in ('auto', 'manifest') and (MTP_OP_GetFilesystemManifest in operationsSupported or method == 'manifest'):
+		attempts.append(('GetFilesystemManifest', MTP_OP_GetFilesystemManifest,
+			struct.pack('<3I', g.storageId, 0, 0),
+			mtpbulk.objectInfosFromFilesystemManifest))
+	for (desc, mtpOp, args, parser) in attempts:
+		consoleWriteLine("Retrieving list of images/files from camera ({:s})".format(desc))
+		try:
+			timeStart = secondsElapsed(None)
+			mtpTcpCmdResult = mtpwifi.execMtpOp(g.socketPrimary, mtpOp, args)
+			objectInfos = parser(mtpTcpCmdResult.dataReceived)
+			applog_v("Retrieved info for {:d} objects via {:s} in {:.2f} seconds".format(len(objectInfos), desc, secondsElapsed(timeStart)))
+			return (objectInfos, desc)
+		except mtpwifi.MtpOpExecFailureException as e:
+			if e.mtpRespCode == MTP_RESP_COMMUNICATION_ERROR:
+				raise
+			applog_d("{:s} not usable: {:s}".format(desc, str(e)))
+		except mtpbulk.BulkDatasetError as e:
+			applog_d("{:s} reply could not be parsed: {:s}".format(desc, str(e)))
+		finally:
+			consoleClearLine()
+	return (None, None)
+
+
+#
+# returns the size of an object. ObjectInfo stores the size as a UINT32, so objects of 4GB or
+# more report 0xFFFFFFFF there; for those the 64-bit ObjectSize property is queried instead
+#
+def getMtpObjectSize(mtpObject):
+	size = mtpObject.mtpObjectInfo.objectCompressedSize
+	if size != MTP_SIZE_UNKNOWN_32BIT:
+		return size
+	if MTP_OP_GetObjectPropValue in g.mtpDeviceInfo.operationsSupportedSet:
+		try:
+			mtpTcpCmdResult = mtpwifi.execMtpOp(g.socketPrimary, MTP_OP_GetObjectPropValue, struct.pack('<II', mtpObject.mtpObjectHandle, MTP_OBJPROP_ObjectSize))
+			if len(mtpTcpCmdResult.dataReceived) >= 8:
+				(size64,) = struct.unpack('<Q', mtpTcpCmdResult.dataReceived[:8])
+				return size64
+		except mtpwifi.MtpOpExecFailureException as e:
+			if e.mtpRespCode == MTP_RESP_COMMUNICATION_ERROR:
+				raise
+	applog_w("Warning: \"{:s}\" is 4GB or larger but the camera doesn't report its exact size - only the first 4GB can be downloaded".format(mtpObject.mtpObjectInfo.filename))
+	return size
+
+
+#
+# generates the operation + arguments to read 'count' bytes at 'offset' of an object.
+# GetPartialObject only has a 32-bit offset; beyond 4GB the 64-bit MTP or Nikon variant is used
+#
+def genGetPartialObjectRequest(objHandle, offset, count):
+	if offset + count <= 0xFFFFFFFF:
+		return (MTP_OP_GetPartialObject, struct.pack('<III', objHandle, offset, count))
+	operationsSupported = g.mtpDeviceInfo.operationsSupportedSet
+	if MTP_OP_GetPartialObject64 in operationsSupported:
+		return (MTP_OP_GetPartialObject64, struct.pack('<IIII', objHandle, offset & 0xFFFFFFFF, offset >> 32, count))
+	if MTP_OP_Nikon_GetPartialObjectEx in operationsSupported:
+		return (MTP_OP_Nikon_GetPartialObjectEx, struct.pack('<IIIII', objHandle, offset & 0xFFFFFFFF, offset >> 32, count, 0))
+	raise mtpwifi.MtpProtocolException("Camera doesn't support transfers beyond 4GB (no GetPartialObject64/GetPartialObjectEx)")
+
+
+#
 # Enumerates all MTP objects on the camera, creating instances of our MtpObject()
 # class for each object found.
 #
@@ -1979,19 +2058,24 @@ def buildMtpObjects(fReportObjectTotals=True):
 			
 
 	#
-	# load MtpObjectInfo cache from previous session. if the cache was not available or
-	# was found to be stale then cachedMtpObjectInfoListDict will be None
+	# first try to get the info for every object in a single request (GetObjectPropList or
+	# GetFilesystemManifest). that is fresh data straight from the camera, so the disk cache
+	# isn't needed. otherwise load the MtpObjectInfo cache from the previous session; if the
+	# cache was not available or was found to be stale then cachedMtpObjectInfoListDict will be None
 	#
-	cachedMtpObjectInfoListDict = loadAndValidateMtpObjectInfoCacheFromDisk(fullObjHandlesList)
+	(cachedMtpObjectInfoListDict, bulkMethodDesc) = fetchMtpObjectInfosInBulk()
+	if cachedMtpObjectInfoListDict is None:
+		cachedMtpObjectInfoListDict = loadAndValidateMtpObjectInfoCacheFromDisk(fullObjHandlesList)
 
 	#
 	# create the MTP objects, downloading those not already in cache
 	#
 	createMtpObjectStatsStruct = CreateMtpObjectStatsStruct()
-	createMtpObjectsFromHandleList(objHandlesListToGet, createMtpObjectStatsStruct, cachedMtpObjectInfoListDict, True)		
+	createMtpObjectsFromHandleList(objHandlesListToGet, createMtpObjectStatsStruct, cachedMtpObjectInfoListDict, True)
 	if fReportObjectTotals or isDebugLog(): # always report object totals when debug logging is enabled
-		applog_i("Processed info for {:d} files/dirs [{:d} from object cache, {:d} previous]".format(\
-			createMtpObjectStatsStruct.countObjectsProcessed, createMtpObjectStatsStruct.countCacheHits, createMtpObjectStatsStruct.countMtpObjectsAlreadyExisting))
+		applog_i("Processed info for {:d} files/dirs [{:d} from {:s}, {:d} previous]".format(\
+			createMtpObjectStatsStruct.countObjectsProcessed, createMtpObjectStatsStruct.countCacheHits,
+			bulkMethodDesc if bulkMethodDesc else "object cache", createMtpObjectStatsStruct.countMtpObjectsAlreadyExisting))
 	
 	#
 	# serialized object list to file to cache it for future sessions. if we're using
@@ -2734,7 +2818,7 @@ def downloadMtpFileObjects(firstMtpObjectToDownload = None):
 				# we may have already written some of the file on a previous invocation. if
 				# so it will be reflected in the partialDownloadObj()
 				# 
-				fileSizeBytes = mtpObject.mtpObjectInfo.objectCompressedSize
+				fileSizeBytes = getMtpObjectSize(mtpObject)
 				bytesWritten = mtpObject.partialDownloadObj().getBytesWritten()
 	
 				if bytesWritten > 0:
@@ -2776,8 +2860,8 @@ def downloadMtpFileObjects(firstMtpObjectToDownload = None):
 							offsetIntoImage, fileSizeBytes, len(dataReceived), g.maxGetObjTransferSize, g.maxGetObjBufferSize))
 					applog_d("{:s} - downloading next piece, offset=0x{:x}, count=0x{:x}".format(localFilenameWithoutPath, offsetIntoImage, bytesToDownloadThisPiece))
 					timeStart = secondsElapsed(None)
-					mtpTcpCmdResultGetObj = mtpwifi.execMtpOp(g.socketPrimary, MTP_OP_GetPartialObject, struct.pack('<III',\
-						mtpObject.mtpObjectHandle, offsetIntoImage, bytesToDownloadThisPiece),\
+					(mtpOpPartial, partialArgs) = genGetPartialObjectRequest(mtpObject.mtpObjectHandle, offsetIntoImage, bytesToDownloadThisPiece)
+					mtpTcpCmdResultGetObj = mtpwifi.execMtpOp(g.socketPrimary, mtpOpPartial, partialArgs,\
 						rxTxProgressFunc=lambda bytesReceivedAllCurrentPayloads, totalBytesExpectedAllCurrentPayloads :\
 						downloadMtpFileObjects_DownloadProgressCallback(bytesReceivedAllCurrentPayloads, totalBytesExpectedAllCurrentPayloads, offsetIntoImage, fileSizeBytes))
 					mtpObject.partialDownloadObj().addDownloadTimeSecs(secondsElapsed(timeStart))

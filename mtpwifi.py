@@ -36,6 +36,7 @@ from collections import namedtuple
 #
 SOCKET_TIMEOUT_CONNECT_SECS_DEFAULT		= 10	# timeout for connect attempts
 SOCKET_TIMEOUT_READS_WRITES_DEFAULT		= 5		# we configure the socket to time out send/receive requests after 5 seconds
+SOCKET_RCVBUF_BYTES						= 4*1024*1024	# TCP receive buffer for camera connections
 
 #
 # types of low-level PTP-TCP/IP commands that can be send
@@ -627,6 +628,11 @@ def openConnection(ipAddrStr, verbose, connectionTimeoutSecs=SOCKET_TIMEOUT_CONN
 	s.settimeout(readWriteTimeoutSecs)						# set per-call timeout on socket, most useful for our future recv() calls
 	s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)	# no Nagle delays on commands/responses (CIPA DC-005 2.2.3.2)
 	enableTcpKeepAlive(s)
+	try:
+		# a large receive buffer keeps the TCP window open across WiFi latency during multi-MB data phases
+		s.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, SOCKET_RCVBUF_BYTES)
+	except OSError as e:
+		applog_d("openConnection(): unable to set SO_RCVBUF: {:s}".format(str(e)))
 	return s
 
 #

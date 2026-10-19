@@ -83,9 +83,14 @@ class SimObject:
     def is_folder(self):
         return self.object_format == FORMAT_ASSOCIATION
 
-    def object_info(self):
-        assoc = ASSOC_GENERIC_FOLDER if self.is_folder else 0
-        return (struct.pack('<IHHIHI', self.storage_id, self.object_format, 0, len(self.data), 0, 0)
+    @property
+    def association(self):
+        return ASSOC_GENERIC_FOLDER if self.is_folder else 0
+
+    def object_info(self, size_unknown=False):
+        assoc = self.association
+        size = 0xFFFFFFFF if size_unknown and not self.is_folder else len(self.data)
+        return (struct.pack('<IHHIHI', self.storage_id, self.object_format, 0, size, 0, 0)
                 + struct.pack('<IIIIIIHII', 0, 0, 0, 0, 0, self.parent, assoc, 0, 0)
                 + ptp_string(self.filename) + ptp_string(self.capture_date)
                 + ptp_string(self.capture_date) + ptp_string(''))
@@ -102,6 +107,7 @@ class SimCamera:
                          0x1009, 0x100A, 0x1015, 0x1016, 0x101B, 0x90C7, 0x9408)
     camera_datetime: str = '20240102T030405'
     reject_initiator: bool = False       # answer Init Command Request with Init Fail
+    size_unknown: bool = False           # ObjectInfo reports 0xFFFFFFFF sizes, as for objects of 4GB or more
     probe_initiator_on_open: bool = False  # send a Probe Request on the event channel when the session opens
 
     def __post_init__(self):
@@ -252,6 +258,30 @@ class SimCamera:
                 + ptp_string(self.manufacturer) + ptp_string(self.model) + ptp_string('1.00')
                 + ptp_string(self.serial))
 
+    def _object_prop_list(self):
+        """GetObjectPropList (MTP 0x9805) for all objects and all properties."""
+        elements = []
+        for o in self.objects.values():
+            props = [(0xDC01, 0x0006, struct.pack('<I', o.storage_id)),
+                     (0xDC02, 0x0004, struct.pack('<H', o.object_format)),
+                     (0xDC03, 0x0004, struct.pack('<H', 0)),
+                     (0xDC04, 0x0008, struct.pack('<Q', len(o.data))),
+                     (0xDC05, 0x0004, struct.pack('<H', o.association)),
+                     (0xDC06, 0x0006, struct.pack('<I', 0)),
+                     (0xDC07, 0xFFFF, ptp_string(o.filename)),
+                     (0xDC08, 0xFFFF, ptp_string(o.capture_date)),
+                     (0xDC09, 0xFFFF, ptp_string(o.capture_date)),
+                     (0xDC0B, 0x0006, struct.pack('<I', o.parent))]
+            elements += [struct.pack('<IHH', o.handle, code, dtype) + value for code, dtype, value in props]
+        return struct.pack('<I', len(elements)) + b''.join(elements)
+
+    def _filesystem_manifest(self, storage_id):
+        """GetFilesystemManifest (PTP 1.1 0x1023): array of ObjectFilesystemInfo datasets."""
+        entries = [struct.pack('<IIHHQIHII', o.handle, o.storage_id, o.object_format, 0, len(o.data), o.parent,
+                               o.association, 0, 0) + ptp_string(o.filename) + ptp_string(o.capture_date)
+                   for h, o in sorted(self.objects.items()) if storage_id in (0xFFFFFFFF, o.storage_id)]
+        return struct.pack('<Q', len(entries)) + b''.join(entries)
+
     def _dispatch(self, opcode, params, data_out):
         p = params + [0] * 5
         if opcode not in self.operations and opcode not in (0x1001, 0x1002, 0x1003):
@@ -277,7 +307,7 @@ class SimCamera:
         if opcode in (0x1008, 0x1009, 0x100A, 0x101B) and obj is None:
             return RC_INVALID_OBJECT_HANDLE, None, []
         if opcode == 0x1008:
-            return RC_OK, obj.object_info(), []
+            return RC_OK, obj.object_info(self.size_unknown), []
         if opcode == 0x1009:
             return RC_OK, obj.data, []
         if opcode == 0x100A:
@@ -292,6 +322,17 @@ class SimCamera:
             return RC_OK, ptp_string(self.camera_datetime), []
         if opcode == 0x1016:
             return RC_OK, None, []
+        if opcode == 0x9805:
+            return RC_OK, self._object_prop_list(), []
+        if opcode == 0x1023:
+            return RC_OK, self._filesystem_manifest(p[0]), []
+        if opcode == 0x9803:
+            target = self.objects.get(p[0])
+            if target is None:
+                return RC_INVALID_OBJECT_HANDLE, None, []
+            if p[1] != 0xDC04:
+                return RC_DEVICE_PROP_NOT_SUPPORTED, None, []
+            return RC_OK, struct.pack('<Q', len(target.data)), []
         if opcode == 0x9408:
             return RC_NIKON_NO_TRANSFER_LIST, None, []
         if opcode == 0x90C7:
