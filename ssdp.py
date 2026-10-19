@@ -17,6 +17,7 @@ import socket
 #from applog import *
 import struct
 import select
+import urllib.parse
 import time
 import sys
 import platform
@@ -228,7 +229,7 @@ def discover(serviceNameList, ssdpServiceVerifyOkCallback=None, numAttempts=3, t
 				# perform receive of queued data for all sockets with data available
 				for sock in socketsWithRxData:
 					ssdpMessageRaw = sock.recv(4096)
-					ssdpMessage = str(ssdpMessageRaw, 'utf-8')
+					ssdpMessage = str(ssdpMessageRaw, 'utf-8', errors='replace') # other devices on the network may send junk
 					if ssdpMessage.startswith("M-SEARCH"):
 						# this is a search packet, either our own or someone else's - disregard
 						continue
@@ -280,11 +281,15 @@ def setUdpSocketForMulticastReceive(sock, multicastGroupTuple, ipAddressStrOfMul
 # gets the IP address (as string) of local hostname
 #	
 def getHostnameIpAddrStr():
-	ipAddrStr = socket.gethostbyname(socket.gethostname())
+	try:
+		ipAddrStr = socket.gethostbyname(socket.gethostname())
+	except (socket.error, UnicodeError) as e:
+		applog_w("Warning: unable to resolve local hostname ({:s}), using 0.0.0.0".format(str(e)))
+		ipAddrStr = "0.0.0.0" # INADDR_ANY - default interface
 	applog_d("getHostnameIpAddrStr(): " + ipAddrStr)
 	return ipAddrStr
-	
-	
+		
+		
 #
 # gets the contents of the specified header for a given SSDP advertise (NOTIFY) or response (HTTP/1.1) string
 #
@@ -363,16 +368,21 @@ def isMessageForService(ssdpMessage, serviceNameStr):
 def extractIpAddressFromSSDPMessage(ssdpMessage):
 	# sample: http://192.168.1.209:1900/DeviceDescription.xml\n
 	locationStr = getHeader(ssdpMessage, "location")
-	if locationStr == None:
+	if not locationStr:
 		return None
-	startIpAddrPos = locationStr.find("http://")
-	if startIpAddrPos != -1:
-		startIpAddrPos += 7 # past "http://"
-		endIpAddrPos = locationStr.find(":", startIpAddrPos)
-		if endIpAddrPos != -1:
-			ipAddrStr = locationStr[startIpAddrPos:endIpAddrPos]
-			return ipAddrStr
-	return None
+	try:
+		hostStr = urllib.parse.urlsplit(locationStr).hostname
+	except ValueError:
+		return None
+	if not hostStr:
+		return None
+	try:
+		socket.inet_aton(hostStr)
+		if hostStr.count('.') != 3:
+			return None # IPv4 dotted-quad only
+	except (socket.error, UnicodeError):
+		return None
+	return hostStr
 
 
 #
