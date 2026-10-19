@@ -140,3 +140,95 @@ def test_gui_builds_every_page(tmp_path, language, monkeypatch, tk_root):
         if gui.g.app:
             gui.g.app.destroy()
             gui.g.app = None
+
+
+#
+# TransferWindow: runs the real airnefcmd against the simulated camera and drives it like a user
+#
+@pytest.fixture
+def transfer_env(tmp_path, monkeypatch, tk_root):
+    from types import SimpleNamespace
+    monkeypatch.setenv('AIRNEF_APPDATA', str(tmp_path / 'appdata'))
+    monkeypatch.setattr(gui, 'root', tk_root)
+    gui.g.appDir = str(ROOT)
+    gui.g.appResourceDir = str(ROOT / 'appresource')
+    gui.g.appDataDir = str(tmp_path / 'appdata')
+    gui.g.isWin32 = gui.platform.system() == 'Windows'
+    gui.g.isOSX = gui.g.isFrozen = False
+    gui.g.app = SimpleNamespace(showQuickTip=lambda *args: None)
+    gui.configureStyles(tk_root)
+    (tmp_path / 'appdata').mkdir()
+    (tmp_path / 'out').mkdir()
+    i18n.setLanguage('en')
+    yield tmp_path
+    i18n.setLanguage('en')
+
+
+def run_window(tk_root, window, until, timeout=60):
+    import time
+    end = time.time() + timeout
+    while time.time() < end and not until():
+        tk_root.update()
+        time.sleep(0.02)
+    assert until(), 'timed out; log so far:\n' + '\n'.join(window.logLines[-15:])
+
+
+def camera_args(cam, tmp_path, *extra):
+    return ['--ipaddress', '127.0.0.1', '--port', str(cam.port), '--retrycount', '1', '--outputdir', str(tmp_path / 'out'), *extra]
+
+
+def test_transfer_window_downloads_and_reports(transfer_env, tk_root):
+    from test_integration import make_camera
+    cam = make_camera()
+    try:
+        window = gui.TransferWindow(camera_args(cam, transfer_env))
+        run_window(tk_root, window, lambda: window.finished)
+        assert window.returncode == 0
+        assert window.statusLabel['text'] == 'Transfer complete'
+        assert window.filesDone == 3 and window.bytesDone == 300_000 + 2_500_000 + 1_000
+        assert '3 file(s) downloaded' in window.summaryLabel['text']
+        assert window.actionButton['text'] == 'Close'
+        assert (transfer_env / 'out' / 'DSC_0002.NEF').read_bytes() == cam.objects[0x20000002].data
+        assert '@@' not in window.logText.get('1.0', 'end')   # protocol lines are not shown as log text
+        window.window.destroy()
+    finally:
+        cam.close()
+
+
+def test_transfer_window_cancel(transfer_env, tk_root):
+    from test_integration import make_camera
+    cam = make_camera(bytes_per_sec=1_000_000)
+    try:
+        window = gui.TransferWindow(camera_args(cam, transfer_env, '--extlist', 'NEF', '--maxgetobjtransfersizekb', '256'))
+        run_window(tk_root, window, lambda: str(window.progressBar['mode']) == 'determinate' and float(window.progressBar['value']) > 0)
+        window.onActionButton()                 # the user presses Cancel
+        assert window.statusLabel['text'] == 'Cancelling...'
+        run_window(tk_root, window, lambda: window.finished, timeout=30)
+        assert window.statusLabel['text'] == 'Transfer cancelled'
+        assert not list((transfer_env / 'out').glob('*'))
+        window.window.destroy()
+    finally:
+        cam.close()
+
+
+def test_transfer_window_answers_file_exists_prompt(transfer_env, tk_root, monkeypatch):
+    from test_integration import make_camera
+    cam = make_camera()
+    existing = transfer_env / 'out' / 'DSC_0001.JPG'
+    existing.write_bytes(b'old')
+    asked = []
+    monkeypatch.setattr(gui.ChoiceDialog, 'show', lambda self: asked.append(self.window.title()) or 'S')
+    try:
+        window = gui.TransferWindow(camera_args(cam, transfer_env, '--extlist', 'JPG', '--ifexists', 'prompt'))
+        run_window(tk_root, window, lambda: window.finished)
+        assert window.returncode == 0 and asked == ['File exists']
+        assert existing.read_bytes() == b'old'
+        window.window.destroy()
+    finally:
+        cam.close()
+
+
+def test_format_size():
+    assert gui.formatSize(512) == '512 bytes'
+    assert gui.formatSize(1536) == '1.5 KB'
+    assert gui.formatSize(5 * 1048576) == '5.0 MB'

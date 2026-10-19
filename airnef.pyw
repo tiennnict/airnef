@@ -30,7 +30,9 @@ from tkinter import messagebox as tkMessageBox
 import time
 import subprocess
 import os
+import queue
 import re
+import threading
 import errno
 import platform
 import json
@@ -217,46 +219,283 @@ def createArgListFromArgStr(argStr):
 def launchAirnefcmd(argList):
 
 	print("Launching airnefcmd with args: ", argList)
-	_errno = 0
-	process = None
-	try:
 
-		root.withdraw() # make our main GUI window invisible while running airnefcmd
+	if g.isFrozen and g.isOSX:
+		# the frozen OS X app can't drive a child process through pipes; it uses a Terminal window (see the workaround above)
+		root.withdraw()
+		try:
+			_errno = osxFrozenWorkaround_LaunchAirnefcmdWrapper(argList)
+		finally:
+			root.deiconify()
+		displayAirnefcmdOutput()
+		return _errno
 
-		if g.isFrozen:
-			if g.isOSX:
-				_errno = osxFrozenWorkaround_LaunchAirnefcmdWrapper(argList)
-			elif g.isWin32:
-				process = subprocess.Popen([os.path.join(g.appDir, 'airnefcmd.exe')] + argList)
-			else: # linux
-				process = subprocess.Popen(['xterm', '+hold', '-e', os.path.join(g.appDir, 'airnefcmd')] + argList)
+	transferWindow = TransferWindow(argList)
+	root.wait_window(transferWindow.window)
+	return transferWindow.returncode
+
+
+#
+# the command that runs airnefcmd: the frozen executable or the same interpreter (and so the same venv) as the GUI
+#
+def airnefcmdCommand():
+	if g.isFrozen:
+		return [os.path.join(g.appDir, 'airnefcmd.exe' if g.isWin32 else 'airnefcmd')]
+	pythonExe = sys.executable
+	if os.path.basename(pythonExe).lower() == 'pythonw.exe':
+		pythonExe = os.path.join(os.path.dirname(pythonExe), 'python.exe') # console build; its window is suppressed below
+	return [pythonExe, os.path.join(g.appDir, 'airnefcmd.py')]
+
+
+#
+# window that runs airnefcmd and shows what it is doing: progress of the current file, a running total, the
+# log and a Cancel button. airnefcmd is driven over pipes (see guilink.py), so no terminal window is needed
+#
+class TransferWindow:
+
+	FORCE_STOP_DELAY_MS = 20000		# after Cancel, offer to force-stop if airnefcmd hasn't finished by then
+	POLL_MS = 100
+
+	def __init__(self, argList):
+		self.returncode = None
+		self.finished = False
+		self.cancelRequested = False
+		self.filesDone = 0
+		self.bytesDone = 0
+		self.secondsDone = 0.0
+		self.lastLine = ''
+		self.logLines = []
+		self.lines = queue.Queue()
+
+		self.window = Toplevel(root)
+		self.window.title(_("Transfer"))
+		self.window.geometry('820x520')
+		self.window.minsize(560, 360)
+		setFrameIcon(self.window)
+		self.window.protocol('WM_DELETE_WINDOW', self.onCloseRequested)
+		self.createWidgets()
+		self.window.bind('<Escape>', lambda e : self.onCloseRequested())
+		self.window.transient(root)
+		self.window.grab_set()
+		bringAppToFront()
+
+		env = dict(os.environ, PYTHONUNBUFFERED='1', PYTHONIOENCODING='utf-8')
+		creationFlags = subprocess.CREATE_NO_WINDOW if g.isWin32 else 0
+		try:
+			self.process = subprocess.Popen(airnefcmdCommand() + argList + ['--guimode', 'yes'], stdin=subprocess.PIPE,
+				stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace',
+				bufsize=1, env=env, creationflags=creationFlags)
+		except OSError as e:
+			self.process = None
+			self.finish(errno.ENOENT)
+			self.appendLog(_("Could not start airnefcmd: {:s}").format(str(e)))
+			return
+		threading.Thread(target=self.readOutput, name='airnef-airnefcmd-output', daemon=True).start()
+		self.window.after(self.POLL_MS, self.poll)
+
+	def createWidgets(self):
+		frame = ttk.Frame(self.window, padding=2*PAD)
+		frame.pack(fill=BOTH, expand=1)
+
+		self.statusLabel = ttk.Label(frame, text=_("Connecting to the camera..."), style='Header.TLabel', font=g.headerFont)
+		self.statusLabel.pack(anchor=W)
+		self.fileLabel = ttk.Label(frame, text=" ", style='Subtle.TLabel')
+		self.fileLabel.pack(anchor=W, pady=(PAD, 2))
+		self.progressBar = ttk.Progressbar(frame, mode='indeterminate', maximum=100)
+		self.progressBar.pack(fill=X)
+		self.progressBar.start(30)
+		self.summaryLabel = ttk.Label(frame, text=" ", style='Subtle.TLabel')
+		self.summaryLabel.pack(anchor=W, pady=(2, PAD))
+
+		details = ttk.LabelFrame(frame, text=_("Details"), padding=PAD)
+		details.pack(fill=BOTH, expand=1)
+		self.logText = ScrolledText(details, wrap=WORD, height=10, font=nametofont('TkFixedFont'), relief=FLAT, borderwidth=0)
+		self.logText.configure(state=DISABLED)	# read-only; text can still be selected and copied
+		self.logText.pack(fill=BOTH, expand=1)
+
+		buttons = ttk.Frame(frame)
+		buttons.pack(fill=X, pady=(PAD, 0))
+		self.actionButton = ttk.Button(buttons, text=_("Cancel"), command=self.onActionButton)
+		self.actionButton.pack(side=RIGHT)
+		ttk.Button(buttons, text=_("Copy to Clipboard"),
+			command=lambda : [root.clipboard_clear(), root.clipboard_append('\n'.join(self.logLines))]).pack(side=RIGHT, padx=PAD)
+		self.actionButton.focus_set()
+
+	#########################################################################
+	# talking to airnefcmd
+
+	def readOutput(self):
+		# runs on a thread: blocking reads of airnefcmd's output, handed to the GUI thread through a queue
+		for line in self.process.stdout:
+			self.lines.put(line.rstrip('\r\n'))
+		self.lines.put(None)	# end of output
+
+	def send(self, text):
+		try:
+			self.process.stdin.write(text + '\n')
+			self.process.stdin.flush()
+		except (OSError, ValueError):
+			pass	# airnefcmd already exited
+
+	def poll(self):
+		try:
+			for i in range(200):	# bounded batch so the UI stays responsive during output bursts
+				line = self.lines.get_nowait()
+				if line is None:
+					self.finish(self.process.wait())
+					return
+				self.handleLine(line)
+		except queue.Empty:
+			pass
+		self.window.after(self.POLL_MS, self.poll)
+
+	def handleLine(self, line):
+		if not line.startswith('@@'):
+			self.appendLog(line)
+			return
+		fields = line[2:].split('\t')
+		kind = fields[0]
+		if kind == 'PROGRESS' and len(fields) >= 4:
+			self.showProgress(fields[1], int(fields[2]), int(fields[3]))
+		elif kind == 'DONE' and len(fields) >= 4:
+			self.filesDone += 1
+			self.bytesDone += int(fields[2])
+			self.secondsDone += float(fields[3])
+			rate = self.bytesDone / self.secondsDone / 1048576 if self.secondsDone > 0 else 0
+			self.summaryLabel['text'] = _("{:d} file(s) downloaded, {:s} ({:.2f} MB/s)").format(self.filesDone, formatSize(self.bytesDone), rate)
+		elif kind == 'PROMPT' and len(fields) >= 3:
+			self.askUser(fields[2])
+
+	def showProgress(self, name, received, total):
+		self.statusLabel['text'] = _("Transferring - press Cancel to stop") if not self.cancelRequested else _("Cancelling...")
+		if total > 0:
+			self.progressBar.stop()
+			self.progressBar.configure(mode='determinate', value=100.0 * received / total)
+			self.fileLabel['text'] = "{:s} - {:s} / {:s}".format(name, formatSize(received), formatSize(total))
 		else:
-			# same interpreter/venv as the GUI, but the console variant so airnefcmd gets a terminal window
-			pythonExe = sys.executable
-			if os.path.basename(pythonExe).lower() == 'pythonw.exe':
-				pythonExe = os.path.join(os.path.dirname(pythonExe), 'python.exe')
-			creationFlags = subprocess.CREATE_NEW_CONSOLE if g.isWin32 else 0
-			process = subprocess.Popen([pythonExe, os.path.join(g.appDir, 'airnefcmd.py')] + argList, creationflags=creationFlags)
+			self.fileLabel['text'] = name
 
-		if process:
-			_errno = process.wait()
+	def askUser(self, validKeys):
+		# airnefcmd asks what to do about an existing file (--ifexists prompt)
+		labels = { 'S' : _("Skip"), 'O' : _("Overwrite"), 'U' : _("Keep both (new name)"), 'E' : _("Exit") }
+		answer = ChoiceDialog(self.window, _("File exists"), self.lastLine, [(key, labels.get(key, key)) for key in validKeys.upper()]).show()
+		self.send('answer\t' + answer)
 
-	except KeyboardInterrupt as e:
-		print("SIGINT received while waiting for airnefcmd to complete")
-		if process:
-			#
-			# both airnef and airnefcmd rceive the SIGINT. make sure airnefcmd
-			# has completed processing its SIGTERM by waiting for it to exit
-			#
-			if process.poll() == None:
-				print("waiting for airnefcmd to finish handling its SIGINT")
-				process.wait()
-		_errno = errno.EINTR
-	finally:
-		root.deiconify() # bring our main GUI window back
+	def appendLog(self, line):
+		self.lastLine = line
+		self.logLines.append(line)
+		atEnd = self.logText.yview()[1] >= 0.999
+		self.logText.configure(state=NORMAL)
+		self.logText.insert(END, line + '\n')
+		self.logText.configure(state=DISABLED)
+		if atEnd:
+			self.logText.see(END)
 
-	displayAirnefcmdOutput()
-	return _errno
+	#########################################################################
+	# buttons and completion
+
+	def onActionButton(self):
+		if self.finished:
+			self.window.destroy()
+		elif not self.cancelRequested:
+			self.cancelRequested = True
+			self.statusLabel['text'] = _("Cancelling...")
+			self.actionButton.configure(state=DISABLED)
+			self.send('cancel')
+			self.window.after(self.FORCE_STOP_DELAY_MS, self.offerForceStop)
+		else:
+			self.process.terminate()	# last resort after Cancel didn't finish
+
+	def offerForceStop(self):
+		if not self.finished:
+			self.actionButton.configure(text=_("Force stop"), state=NORMAL)
+
+	def onCloseRequested(self):
+		if self.finished:
+			self.window.destroy()
+		elif self.cancelRequested:
+			pass	# already cancelling; the window closes when airnefcmd has finished
+		else:
+			self.onActionButton()
+
+	def finish(self, returncode):
+		self.returncode = returncode
+		self.finished = True
+		self.progressBar.stop()
+		if returncode == 0:
+			self.progressBar.configure(mode='determinate', value=100)
+			self.statusLabel['text'] = _("Transfer complete")
+		elif returncode == errno.EINTR or self.cancelRequested:
+			self.statusLabel['text'] = _("Transfer cancelled")
+		else:
+			self.statusLabel['text'] = _("Transfer ended with an error (code {:d}) - see the details below").format(returncode)
+		self.actionButton.configure(text=_("Close"), state=NORMAL)
+		self.actionButton.focus_set()
+		self.window.bind('<Return>', lambda e : self.window.destroy())
+		warnIfUncleanShutdown()
+
+
+#
+# human-readable size
+#
+def formatSize(nbytes):
+	size = float(nbytes)
+	for unit in ('bytes', 'KB', 'MB', 'GB'):
+		if size < 1024 or unit == 'GB':
+			return "{:d} bytes".format(int(size)) if unit == 'bytes' else "{:.1f} {:s}".format(size, unit)
+		size /= 1024
+
+
+#
+# modal dialog with one button per choice; returns the key of the button pressed
+#
+class ChoiceDialog:
+
+	def __init__(self, parent, title, message, choices):
+		self.answer = choices[0][0]
+		self.window = Toplevel(parent)
+		self.window.title(title)
+		self.window.transient(parent)
+		self.window.resizable(False, False)
+		frame = ttk.Frame(self.window, padding=2*PAD)
+		frame.pack()
+		ttk.Label(frame, text=message, wraplength=460, justify=LEFT).pack(anchor=W, pady=(0, 2*PAD))
+		buttons = ttk.Frame(frame)
+		buttons.pack(anchor=E)
+		for key, label in choices:
+			button = ttk.Button(buttons, text=label, command=lambda k=key : self.choose(k))
+			button.pack(side=LEFT, padx=(PAD, 0))
+			if key == choices[0][0]:
+				button.focus_set()
+		self.window.protocol('WM_DELETE_WINDOW', lambda : None)	# an answer is required
+
+	def choose(self, key):
+		self.answer = key
+		self.window.destroy()
+
+	def show(self):
+		self.window.grab_set()
+		self.window.wait_window()
+		return self.answer
+
+
+#
+# shows the one-time tip when the last airnefcmd run didn't end cleanly (its log is missing the final "session over" line)
+#
+def warnIfUncleanShutdown():
+	reportFilename = os.path.join(g.appDataDir, "airnefcmd-log-last.txt")
+	try:
+		with open(reportFilename, "r", encoding="utf-8", errors="replace") as f:
+			complete = ">>>> airnefcmd session over" in f.read()
+	except OSError:
+		return
+	if not complete:
+		g.app.showQuickTip('airnefcmd_unclean_shutdown', 1,
+			_("It appears airnefcmd was uncleanly terminated. In the future please press Cancel in the transfer window "
+			"instead of force-closing it. This allows airnefcmd to perform any necessary cleanup prior to exiting."))
+
+
+
 
 
 #

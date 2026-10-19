@@ -16,8 +16,9 @@ original v1.1 release. The version number lives in `version.py`.
 - Event channel serviced on a background thread: answers camera Probe Requests so the session is
   not dropped, and queues events.
 - Realtime downloads react immediately to `ObjectAdded` events; polling remains as the fallback.
-- `<ctrl-c>` cancels the running transaction with a Cancel packet on both connections and waits
-  for `Transaction_Cancelled`, so the session closes cleanly.
+- `<ctrl-c>` (or Cancel in the GUI) cancels the running transaction with a Cancel packet on both
+  connections and waits for `Transaction_Cancelled`, so the session closes cleanly. The cancel is
+  noticed within 250 ms at a safe point before each socket read, so no received bytes can be lost.
 - TCP keep-alive on both connections; full Init Command Ack parsing; Init Fail reasons reported
   (a busy camera is retried); TransactionIDs restart at 1 for each session.
 - Fixed hangs when `recv()` returns no data, split length prefixes, partial `send()`, and
@@ -42,6 +43,10 @@ original v1.1 release. The version number lives in `version.py`.
   **Language** menu; `tools/extract_messages.py` maintains the template and catalogs.
 - Settings are stored as language-independent keys; settings saved by v1 are still understood.
 - Output paths containing spaces or quotes are passed to `airnefcmd` intact.
+- Self-contained: airnefcmd runs in the background and a transfer window shows per-file progress,
+  totals and speed, the details and a Cancel button; no terminal window is needed. The GUI and
+  airnefcmd talk over pipes (hidden `--guimode`, see `guilink.py`), and airnefcmd cancels itself
+  if the GUI disappears. "If file exists: prompt" is answered in a dialog.
 
 ### Fixes
 - `Start Download` failed with `NameError` (missing `re` import after the Python 3 port).

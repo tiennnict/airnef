@@ -29,13 +29,14 @@ uv run pytest                    # test suite (uses a simulated PTP/IP camera)
 `uv sync` downloads a suitable Python if none is installed. The GUI launches `airnefcmd.py` with
 the same interpreter, so there is nothing else to configure.
 
-On Windows the download runs in its own console window. On macOS and Linux the `airnefcmd` output
-appears in the terminal you started the GUI from, so start it from a terminal.
+The GUI runs `airnefcmd` in the background and shows its progress in its own transfer window, so
+no terminal is needed.
 
-Whenever you'd like to cancel the current Airnef download/operation, press `<ctrl-c>` in the
-console/terminal window that airnefcmd is running in. **Do not click the "X" in that window's
-title bar** - doing this terminates airnefcmd without properly cleaning up the resources and files
-it was processing.
+Whenever you'd like to cancel the current Airnef download/operation, press **Cancel** in the
+transfer window. Airnef then stops the transfer cleanly, closes the camera session and removes the
+partially downloaded file. If you run `airnefcmd` directly from a terminal, press `<ctrl-c>`
+instead. Avoid force-closing the window or terminal, because that terminates airnefcmd without
+cleaning up the resources and files it was processing.
 
 airnef keeps its settings, download history, logs and object cache in the `appdata` directory next
 to the scripts.
