@@ -59,13 +59,14 @@ def test_preview_and_custom_dates():
 
 
 def test_generated_args_are_accepted_by_airnefcmd(monkeypatch):
-    import airnefcmd
+    import cmdline
+    from appstate import g
     args = gui.buildArgsSelectOnComputer(settings(download_date='custom', custom_date_start='01/02/24'))
-    monkeypatch.setattr(airnefcmd.sys, 'argv', ['airnefcmd.py'] + args)
-    monkeypatch.setattr(airnefcmd.g, 'appDir', str(ROOT / 'nonexistent'))
-    airnefcmd.processCmdLine()
-    assert airnefcmd.g.args['outputdir'] == r'C:\My Pictures'
-    assert airnefcmd.g.args['extlist'] == {'NEF', 'JPG'}
+    monkeypatch.setattr(cmdline.sys, 'argv', ['airnefcmd.py'] + args)
+    monkeypatch.setattr(g, 'appDir', str(ROOT / 'nonexistent'))
+    cmdline.processCmdLine()
+    assert g.args['outputdir'] == r'C:\My Pictures'
+    assert g.args['extlist'] == {'NEF', 'JPG'}
 
 
 def test_v1_config_values_are_migrated():

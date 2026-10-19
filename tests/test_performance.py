@@ -4,7 +4,9 @@ from types import SimpleNamespace
 
 import pytest
 
-import airnefcmd
+import downloader
+import mtpwifi
+from appstate import g
 import mtpbulk
 from dlinkedlist import LinkedList, LinkedListObj
 from mtpdef import (MTP_OP_GetPartialObject, MTP_OP_GetPartialObject64, MTP_OP_Nikon_GetPartialObjectEx,
@@ -57,18 +59,18 @@ def test_unknown_32bit_size_uses_objectsize_property(tmp_path):
 
 def test_partial_object_request_switches_to_64bit_beyond_4gb(monkeypatch):
     def device(ops):
-        monkeypatch.setattr(airnefcmd.g, 'mtpDeviceInfo', SimpleNamespace(operationsSupportedSet=set(ops)))
+        monkeypatch.setattr(g, 'mtpDeviceInfo', SimpleNamespace(operationsSupportedSet=set(ops)))
 
     device([])
-    assert airnefcmd.genGetPartialObjectRequest(7, 100, 50) == (MTP_OP_GetPartialObject, struct.pack('<III', 7, 100, 50))
+    assert downloader.genGetPartialObjectRequest(7, 100, 50) == (MTP_OP_GetPartialObject, struct.pack('<III', 7, 100, 50))
     offset = 0x1_0000_0010
     device([MTP_OP_GetPartialObject64])
-    assert airnefcmd.genGetPartialObjectRequest(7, offset, 50) == (MTP_OP_GetPartialObject64, struct.pack('<IIII', 7, 0x10, 1, 50))
+    assert downloader.genGetPartialObjectRequest(7, offset, 50) == (MTP_OP_GetPartialObject64, struct.pack('<IIII', 7, 0x10, 1, 50))
     device([MTP_OP_Nikon_GetPartialObjectEx])
-    assert airnefcmd.genGetPartialObjectRequest(7, offset, 50)[0] == MTP_OP_Nikon_GetPartialObjectEx
+    assert downloader.genGetPartialObjectRequest(7, offset, 50)[0] == MTP_OP_Nikon_GetPartialObjectEx
     device([])
-    with pytest.raises(airnefcmd.mtpwifi.MtpProtocolException):
-        airnefcmd.genGetPartialObjectRequest(7, offset, 50)
+    with pytest.raises(mtpwifi.MtpProtocolException):
+        downloader.genGetPartialObjectRequest(7, offset, 50)
 
 
 def test_proplist_parser_skips_objects_without_name():

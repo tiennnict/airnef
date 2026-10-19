@@ -88,21 +88,22 @@ def test_applog_shutdown_closes_both_logs(tmp_path):
 
 
 def test_extension_filter_is_case_insensitive():
-    import airnefcmd
-    assert airnefcmd.isMtpFilenameExtInList('dsc_0001.jpg', {'JPG'})
-    assert not airnefcmd.isMtpFilenameExtInList('dsc_0001.nef', {'JPG'})
+    from objectcatalog import isMtpFilenameExtInList
+    assert isMtpFilenameExtInList('dsc_0001.jpg', {'JPG'})
+    assert not isMtpFilenameExtInList('dsc_0001.nef', {'JPG'})
 
 
 def test_download_history_skips_truncated_line(tmp_path):
-    import airnefcmd
+    import downloader
+    from appstate import g
     root = tmp_path / 'cam'
     hist = tmp_path / 'cam-downloadhist'
     hist.write_text('DSC_1.NEF::20150101T000000::1,000::::01/01/15 00:00:00::/pics/DSC_1.NEF\n'
                     'DSC_2.NEF::2015010', encoding='utf-8')  # second line truncated, no newline
-    airnefcmd.g.cameraLocalMetadataPathAndRootName = str(root)
-    airnefcmd.g.downloadHistoryDict = None
-    airnefcmd.g.args = {'downloadhistory': 'skipfiles'}
-    history, f = airnefcmd.loadDownloadHistory()
+    g.cameraLocalMetadataPathAndRootName = str(root)
+    g.downloadHistoryDict = None
+    g.args = {'downloadhistory': 'skipfiles'}
+    history, f = downloader.loadDownloadHistory()
     f.close()
     assert list(history) == ['DSC_1.NEF::20150101T000000::1,000']
     assert hist.exists()

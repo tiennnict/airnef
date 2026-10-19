@@ -57,7 +57,14 @@ This is a partial list of camera's I've personally tested. Even if your camera i
 | `airnef.pyw` | GUI (themed Tkinter/ttk) - builds the command line and launches `airnefcmd` |
 | `i18n.py`, `locale/` | Interface translations (gettext `.po` catalogs) |
 | `tools/extract_messages.py` | Extracts translatable strings into `locale/airnef.pot` and merges them into the catalogs |
-| `airnefcmd.py` | Command-line app: session, object enumeration, cache, download, realtime, retry |
+| `airnefcmd.py` | Command-line app entry point: environment setup and the session/retry loop |
+| `appstate.py` | Constants, error codes and the shared global state of airnefcmd |
+| `mtpdatasets.py` | Parsers for PTP/MTP datasets (DeviceInfo, StorageInfo, ObjectInfo, Nikon events) |
+| `camerasession.py` | Connecting to the camera, MTP session, storage selection, device properties, clock sync |
+| `objectcatalog.py` | Enumerating the camera's objects, object cache, user filters |
+| `downloader.py` | Downloading files: history, renaming, partial/64-bit transfers, `--downloadexec`, listings |
+| `realtime.py` | Realtime download of images as they are taken |
+| `cmdline.py` | Command-line argument processing |
 | `mtpwifi.py` | PTP/IP transport (CIPA DC-005, TCP 15740): handshake, data phases, cancel, keep-alive, background event channel |
 | `mtpdef.py` | PTP/MTP constants (opcodes, responses, events, device and object props) incl. Nikon/Canon/Sony vendor codes |
 | `mtpbulk.py` | Parsers for single-request enumeration (GetObjectPropList, GetFilesystemManifest) |
