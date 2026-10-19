@@ -31,3 +31,18 @@ jobs:
         run: xvfb-run -a uv run pytest
       - name: Check translations are complete
         run: uv run tools/extract_messages.py --check
+      - name: DEBUG probe
+        if: failure() && runner.os == 'Linux'
+        run: |
+          cat > /tmp/dbg.py <<'PY'
+          import sys, pathlib, glob
+          sys.path[:0] = ['.', 'tests']
+          from test_integration import make_camera, run_airnefcmd
+          cam = make_camera(probe_initiator_on_open=True)
+          p = pathlib.Path('/tmp/dbgrun'); p.mkdir(exist_ok=True)
+          r = run_airnefcmd(cam, p, '--action', 'listfiles', '--logginglevel', 'debug')
+          print(r.returncode)
+          for f in glob.glob('/tmp/dbgrun/**/*.log', recursive=True) + glob.glob('/tmp/dbgrun/**/*.txt', recursive=True):
+              print('=====', f); print(open(f, errors='replace').read()[-6000:])
+          PY
+          uv run python /tmp/dbg.py || true
